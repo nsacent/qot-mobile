@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+	<!-- Meta -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, minimal-ui, viewport-fit=cover">
+	<meta name="theme-color" content="#6E4ED4">
+	<meta name="author" content="DexignZone" /> 
+    <meta name="keywords" content="" /> 
+    <meta name="robots" content="" /> 
+	<meta name="description" content="Classifind - React Native Expo Classified Mobile App Template"/>
+	<meta property="og:title" content="Classifind - React Native Expo Classified Mobile App Template" />
+	<meta property="og:description" content="Classifind - React Native Expo Classified Mobile App Template" />
+	<meta property="og:image" content="https://classifind.dexignzone.com/reactnative/social-image.png"/>
+	<meta name="format-detection" content="telephone=no">
+	
+	<!-- Favicons Icon -->
+	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.png" />
+    
+    <!-- Title -->
+	<title>Classifind - React Native Expo Classified Mobile App Template</title>
+	
+	
+	<!-- Css Style -->
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<link rel="stylesheet" href="plugins/jstree/dist/themes/default/style.min.css">
+	<link rel="stylesheet" href="css/scrollbar.css">
+	<link rel="stylesheet" href="css/font-awesome.css">
+	<link rel="stylesheet" href="css/styles.css">
+	
+	<!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@200;300;400;600;700;800;900&family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+	
+</head>
+<body data-spy="scroll" data-target=".nav-bar" data-offset="50">
+<div class="wrapper" id="tableofcontent">
+
+	<!-- Sidebar Holder -->
+	<nav id="nevbarleft">
+		<div class="side-nav full-height">
+			<div class="sidebar-header">
+				<div class="main-logo">
+					<img class="icon" src="images/logo-white.png" alt="logo"/>
+				</div>
+			</div>
+			<div class="nav-bar">
+				<ul class="list-unstyled content-scroll components navbar-nav nav" id="download-button">
+					<li class="active"><a href="#introduction">Introduction</a></li>
+					<li><a href="#installation">Installation</a></li>
+					<li><a href="#folder_directories">Folder Directories</a></li>
+					<li><a href="#source_structure">Source Structure</a></li>
+					<li><a href="#theme">Theme</a></li>
+					<li><a href="#appname_icon">App Name & Icon</a></li>
+					<li><a href="#our_product">Our Products </a></li>
+					<li><a href="#custom_work">Custom Work Requirements </a></li>
+					<li><a href="#version_history">Version History</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+	
+	<!-- Page Content Holder -->
+	<div id="content">
+		
+		<!-- Navber -->
+		<nav class="navbar navbar-default top-nav-bar ">
+			<div class="container-fluid">
+				<div class="navbar-header">
+				   <button type="button" id="sidebarCollapse" class="navbar-btn">
+						<span></span>
+						<span></span>
+						<span></span>
+					</button>
+				</div>
+				<a href="https://1.envato.market/zxja6M" target="_blank" class="site-button support-button">Buy Now</a>
+			</div>
+		</nav>
+		
+		<!-- Banner -->
+		<section class="app-brief slide-banner">
+			<div class="container">
+				<div class="section-header">
+					<h2>Classifind - Classified Mobile Template</h2>
+					<div class="colored-line"></div>
+					<div class="section-description">
+						Classifind - React Native Expo Classified Mobile App Template
+					</div>
+					<div class="colored-line"></div>
+				</div>
+			</div>
+		</section>
+		
+		<!-- Introduction -->
+		<section class="app-brief" id="introduction">
+			<div class="container center-align">
+				<h1>Classifind</h1>
+				<h3>Classifind - React Native Expo Classified Mobile App Template</h3>
+				<p>This documentation is last updated on 17 June 2025.</p>
+				<p>Thank you for purchasing this Mobile App template.</p>
+				<p><strong>If you like this template, Please support us by rating this template with 5 stars </strong> </p>
+			</div>
+		</section>
+		<hr/>
+		
+		<!-- Installation -->
+		<section class="app-brief" id="installation">
+			<div class="container left-align">
+				<div class="section-header">
+					<h2 class="dark-text title">Installation - </h2>
+				</div>
+				<div class="sass-compile">
+				
+				<h3 class="title"><strong>Android</strong><h3>
+					<h3 class="title">1.- Install Node.js</h3>
+					<p>To run React Native app via the command line first, we need to install <a href="https://nodejs.org/en/" target="_blank" class="text-primary">node.js</a>. The easiest way is downloading it from the official website nodejs.org open the package and follow the wizard.</p>
+					
+					<h3 class="title">2. Install node modules</h3>
+					<p>To install React Native packages run following command.</p>
+<pre class="brush: javascript; h-100">
+cd ./source
+npm install
+</pre>
+					<h3 class="title">3. Start a development server</h3>
+					<p>To run React Native app run following command.</p>
+<pre class="brush: javascript; h-100">npx expo start
+</pre>
+					<h3 class="title">4. Press "a" | open Android</h3>
+</pre>
+					<p>Using your <a target="_blank" href="https://docs.expo.dev/workflow/android-studio-emulator" class="text-primary">Simulator</a> and build project</p>
+					
+					<img src="images/screenshot/android-install.png" alt=""/>
+					
+					<br/>
+					<br/>
+					
+					<h3 class="title"><strong>IOS</strong><h3>
+					<h3 class="title">1.- Install Node.js</h3>
+					<p>To run React Native app via the command line first, we need to install <a href="https://nodejs.org/en/" target="_blank" class="text-primary">node.js</a>. The easiest way is downloading it from the official website nodejs.org open the package and follow the wizard.</p>
+					
+					<h3 class="title">2. Install node modules</h3>
+					<p>To install React Native packages run following command.</p>
+<pre class="brush: javascript; h-100">
+cd ./source
+npm install
+</pre>
+					<h3 class="title">3. Start a development server</h3>
+					<p>To run React Native app run following command.</p>
+<pre class="brush: javascript; h-100">npx expo start
+</pre>
+					<h3 class="title">4. Press "i" | open IOS simulator</h3>
+</pre>
+					<p>Using your <a target="_blank" href="https://docs.expo.dev/workflow/ios-simulator/" class="text-primary">Simulator</a> and build project</p>
+					
+					<img src="images/screenshot/simulator-install.png" alt=""/>
+					
+				</div>
+			</div>
+		</section>
+		<hr/>
+		
+		<!-- Folder Directories -->
+		<section class="app-brief" id="folder_directories">
+			<div class="container left-align">
+				<div class="section-header ">
+					<h2 class="dark-text title">Folder Directories - </h2>
+				</div>
+				<div id="dz_tree" class="tree-demo">
+					<ul>
+						<li data-jstree='{ "opened" : true }'>Package
+							<ul>
+								<li data-jstree='{ "opened" : false }'>.expo</li>
+                                <!-- <li data-jstree='{ "opened" : false }'>__tests__</li> -->
+								<li data-jstree='{ "opened" : false }'>android</li>
+								<li data-jstree='{ "opened" : true }'>app
+									<ul>
+                                        <li data-jstree='{ "opened" : "false" }'>.idea</li>
+										<li data-jstree='{ "opened" : "false" }'>assets</li>
+                                        <li>components
+											<ul>
+												<li data-jstree='{ "opened" : "false" }'>Accordion</li>
+												<li data-jstree='{ "opened" : "false" }'>ActionSheet</li>
+												<li data-jstree='{ "opened" : "false" }'>BottomSheet</li>
+												<li data-jstree='{ "opened" : "false" }'>Button</li>
+												<li data-jstree='{ "opened" : "false" }'>...</li>
+											</ul>
+										</li>
+                                        <li data-jstree='{ "opened" : "false" }'>constants</li>
+                                        <li data-jstree='{ "opened" : "false" }'>layout</li>
+                                        <li data-jstree='{ "opened" : "false" }'>Navigations</li>
+                                        <li data-jstree='{ "opened" : "false" }'>Redux</li>
+                                        <li data-jstree='{ "opened" : "false" }'>screens</li>
+                                    </ul>   
+								</li>
+								<!-- <li data-jstree='{ "opened" : false }'>ios</li> -->
+								<li data-jstree='{ "opened" : false }'>assets</li>
+                                <!-- <li data-jstree='{ "type" : "file" }'>.eslintrc.js</li> -->
+                                <li data-jstree='{ "type" : "file" }'>.gitignore</li>
+                                <!-- <li data-jstree='{ "type" : "file" }'>.node-version</li> -->
+                                <!-- <li data-jstree='{ "type" : "file" }'>.prettierrc.js</li> -->
+                                <!-- <li data-jstree='{ "type" : "file" }'>.watchmanconfig</li> -->
+                                <li data-jstree='{ "type" : "file" }'>app.json</li>
+                                <li data-jstree='{ "type" : "file" }'>App.tsx</li>
+                                <li data-jstree='{ "type" : "file" }'>babel.config.js</li>
+                                <!-- <li data-jstree='{ "type" : "file" }'>Gemfile</li> -->
+                                <li data-jstree='{ "type" : "file" }'>eas.json</li>
+                                <!-- <li data-jstree='{ "type" : "file" }'>metro.config.js</li> -->
+                                <li data-jstree='{ "type" : "file" }'>package.json</li>
+                                <li data-jstree='{ "type" : "file" }'>package-lock.json</li>
+                                <!-- <li data-jstree='{ "type" : "file" }'>react-native.config.js</li> -->
+                                <li data-jstree='{ "type" : "file" }'>tsconfig.json</li>
+                                <li data-jstree='{ "type" : "file" }'>webpack.config.js</li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</section>
+		<hr/>
+		
+        
+		<section class="app-brief" id="source_structure">
+			<div class="container left-align">
+				<div class="section-header">
+					<h2 class="dark-text title">Source Structure - </h2>
+				</div>
+				<div>
+					<img src="images/screenshot/theme.png" alt=""/>
+					<h3>Utils Files</h3>
+					<p>File locate: <code>./app/Utils/..</code></p>
+					<ul class="list-style-1">
+						<li>Theme color for app</li>
+						<li>images use for the app</li>
+						<li>Icons & Fonts use for the app</li>
+					</ul>
+					<br/>
+					<h3>Navigation</h3>
+					<p>File locate: <code>./app/Navigations/..</code></p>
+					<img src="images/screenshot/navigation.png" alt=""/>
+					<br/>
+					<br/>
+					<ul class="list-style-1">
+						<li>Define first loading screen here.</li>
+						<li>You can add bottom Navigation Screen in <code>./Navigations/BottomNavigation.js</code>.</li>
+					</ul>
+
+					<br/>
+					<h3>Screens</h3>
+					<p>File locate: <code>./app/Screens/..</code></p>
+					<p>Then navigation has defined in <code>./app/Navigations/StackNavigator.js</code> will link with screens locate in folder <code>./app/Screens/..</code></p>
+					<p>App all screens design are locate in here  <code>(./app/screens/..).</code> You could change or re-structure by matching with your own project structure design.</p>
+					<br/>
+					<h3>Assets</h3>
+					<p>File locate: <code>./app/assets/..</code></p>
+					<p>You can store images or other file resource in this folder</p>
+
+				</div>
+			</div>
+		</section>
+		<hr/>
+		
+		<section class="app-brief" id="theme">
+			<div class="container left-align">
+				<div class="section-header">
+					<h2 class="dark-text title">Theme - </h2>
+				</div>
+				<div>
+					<h3>Font Family</h3>
+					<p>The default font family name <code>“Poppins”</code> are being used for this template. If you need change or a custom font to be the prettiest? You’ll need the .ttf files for all supported styles (thin, ultraLight, light, regular, medium, semibold, bold, heavy, black …). Here are the few steps you need to add it.</p>
+					<p>Add more font family in folder <code>./app/assets/fonts/..</code></p>
+					<img src="images/screenshot/fonts.png" alt=""/>
+					<br/>
+					<h3>Color</h3>
+					<p>The template are using color palette following format below.</p>
+					<ul class="color-list">
+						<li>
+							<div class="overlay-text color-primary">Primary</div>
+						</li>
+						<li>
+							<div class="overlay-text color-primarylight text-black">Primay Light</div>
+						</li>
+						<li>
+							<div class="overlay-text color-secondary">Secondary</div>
+						</li>
+						<li>
+							<div class="overlay-text color-success">Success</div>
+						</li>
+						<li>
+							<div class="overlay-text color-danger">Danger</div>
+						</li>
+						<li>
+							<div class="overlay-text color-warning">Warning</div>
+						</li>
+						<li>
+							<div class="overlay-text color-info">Info</div>
+						</li>
+						<li>
+							<div class="overlay-text color-text">Text</div>
+						</li>
+						<li>
+							<div class="overlay-text color-title">Title</div>
+						</li>
+						<li>
+							<div class="overlay-text color-dark">Dark</div>
+						</li>
+						<li>
+							<div class="overlay-text color-light text-black">Light</div>
+						</li>
+					</ul>
+					<p>You can change the theme prop dynamically and all the components will automatically update to reflect the new theme. Open file <code>./app/constants/theme.js</code></p>
+					<img src="images/screenshot/colors.png" alt=""/>
+				</div>
+			</div>
+		</section>
+		
+		<hr/>
+	
+	
+		
+		<section class="app-brief" id="appname_icon">
+			<div class="container left-align">
+				<div class="section-header">
+					<h2 class="dark-text title">App Name & Icon - </h2>
+				</div>
+				<div>
+					<h3>Change the app name</h3>
+					<p>Open file <code>./package/app.json</code>  and replace Classified with your app name
+					</p>
+					<img src="images/screenshot/appname.png" alt=""/>
+					<br/>
+					<br/>
+					<h3>Change App Icon</h3>
+					<p>open folder <code>./package/assets</code></p>
+					<p>when you download of 1024px x 1024px (width x height)  you got files then replace them with the below.</p>
+					<img src="images/screenshot/applogo.png" alt=""/>
+					<p><code>Note: After all Changes Sync you project files and restart your app.</code></p>
+				</div>
+			</div>
+		</section>
+		<hr/>
+
+		
+		<!-- Our Products -->
+		<section class="app-brief" id="our_product">
+			<div class="container left-align">
+				<div class="section-header">
+					<h2 class="dark-text title">Our Products - </h2>
+				</div>
+				<div class="row other-theme">
+					<div class="col-md-4 col-sm-6 m-b30">
+						<div class="product-port-bx">
+							<a target="_blank" href="https://1.envato.market/eKJvE6">
+								<img src="images/product/meetflow.png" alt=""/>
+							</a>
+							<div class="product-info">
+								<h4 class="title">
+									<a target="_blank" href="https://1.envato.market/do3Mdj">
+										MeetFlow - React Native Expo Social Mobile App Template
+									</a>
+								</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4 col-sm-6 m-b30">
+						<div class="product-port-bx">
+							<a target="_blank" href="https://1.envato.market/9gnLRW">
+								<img src="images/product/cryptocraft.png" alt=""/>
+							</a>
+							<div class="product-info">
+								<h4 class="title">
+									<a target="_blank" href="https://1.envato.market/GjoMLB">
+										CryptoCraft - React Native Expo Crypto Mobile App Template
+									</a>
+								</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4 col-sm-6 m-b30">
+						<div class="product-port-bx">
+							<a target="_blank" href="https://1.envato.market/nLL6QR">
+								<img src="images/product/cryptozone.png" alt=""/>
+							</a>
+							<div class="product-info">
+								<h4 class="title">
+									<a target="_blank" href="https://1.envato.market/nLL6QR">
+										CryptoZone - Crypto Mobile App React Native Expo Template
+									</a>
+								</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4 col-sm-6 m-b30">
+						<div class="product-port-bx">
+							<a target="_blank" href="https://1.envato.market/nL1YxV">
+								<img src="images/product/datingkit.png" alt=""/>
+							</a>
+							<div class="product-info">
+								<h4 class="title">
+									<a target="_blank" href="https://1.envato.market/nL1YxV">
+										DatingKit - Dating Mobile App React Native Template
+									</a>
+								</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4 col-sm-6 m-b30">
+						<div class="product-port-bx">
+							<a target="_blank" href="https://1.envato.market/KeVmXe">
+								<img src="images/product/appzilla.png" alt=""/>
+							</a>
+							<div class="product-info">
+								<h4 class="title">
+									<a target="_blank" href="https://1.envato.market/KeVmXe">
+										Appzilla - Pre Build Mobile App React Native Template
+									</a>
+								</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4 col-sm-6 m-b30">
+						<div class="product-port-bx">
+							<a target="_blank" href="https://1.envato.market/yRndgG">
+								<img src="images/product/wedo.png" alt=""/>
+							</a>
+							<div class="product-info">
+								<h4 class="title">
+									<a target="_blank" href="https://1.envato.market/yRndgG">
+										Wedo - Ecommerce Mobile App React Native Template
+									</a>
+								</h4>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+		
+		<!-- Need Help -->
+		<section class="app-brief" id="custom_work" style="background-image: url(images/bg1.png); background-position: left center;">
+			<div class="container left-align">
+				<div class="col-md-12 text-center custom-info">
+					<h2 class="m-t0">Do You Need Help To Customization</h2>
+					<h3 class="text-primary">After Purchase A Template...</h3>
+					<h4>You Will Start Customizing According Your Requirement<br/> <span class="text-primary">BUT</span> What If You Don't Know</h4>
+					<h3 class="text-black">SOLUTION IS <span class="text-primary"><u>HIRE DexignZone</u></span></h3>
+					<div class="hire">
+						<h4><span class="text-black">Hire Same Team For </span> <span class="text-primary">Quality Customization</span></h4>
+						<ul>
+							<li>We Will Customize Template According To Your Requirement</li>
+							<li>We Will Upload On Server And Make Sure Your Website is Live</li>
+						</ul>
+						<div class="gmail-box">
+							<a href="skype:rahulxarma?chat" class="gmail"><i class="fa fa-skype"></i>rahulxarma</a>
+							<a target="_blank" href="mailto:dexignzones@gmail.com" class="gmail"><i class="fa fa-envelope"></i> dexignzones@gmail.com</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+		
+		<!-- Change Log -->
+		<section class="app-brief change-log" id="version_history">
+			<div class="container left-align">
+				<div class="section-header">
+					<h2 class="dark-text title">Version History - <small class="topbutton"><a class="scroltop" href="javascript:void(0);">#back to top</a></small></h2>
+				</div>
+				<h3>v1.1 17 June 2025</h3>
+				<ul>
+					<li>Upgraded to Expo (SDK 53) for enhanced compatibility and performance</li>
+					<li>Updated all third-party libraries to their latest stable versions</li>
+					<li>Resolved UI/design inconsistencies across both iOS and Android platforms</li>
+					<li>Enhanced app performance and stability for a smoother user experience</li>
+				</ul>
+				<h3>v1.0 27 December 2024.</h3>
+				<ul>
+					<li>New - Created & Upload Classifind</li>
+				</ul>
+			</div>
+		</section>
+			
+		<!-- Footer -->
+		<footer class="app-brief grey-bg">
+			<div class="container">
+				<p class="copyright">
+					© 2024 <a href="https://dexignzone.com/" target="_blank"><strong>DexignZone</strong></a>. All Rights Reserved
+				</p>
+			</div>
+		</footer>
+	
+	</div>
+</div>
+	
+<!-- JavaScript -->
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="plugins/jstree/dist/jstree.min.js"></script>
+<script src="js/jquery.scrollTo.min.js"></script>
+<script src="js/highlight-min.js"></script>
+<script src="js/jquery.localScroll.min.js"></script>
+<script src="js/scrollbar.min.js"></script>
+<script src="js/custom.js"></script>
+
+<script>
+	document.addEventListener('DOMContentLoaded', (event) => {
+		document.querySelectorAll('pre.dark-code code').forEach((el) => {
+			hljs.highlightElement(el);
+		});
+	});		
+</script>
+</body>
+</html>
