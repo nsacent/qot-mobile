@@ -35,6 +35,16 @@ export const register = ({ phone, email, fullName, password, passwordConfirm }) 
     })
 );
 
+export const loginWithFacebook = ({ accessToken, keepSignedIn = true }) => (
+    apiRequest('/auth/facebook/', {
+        method: 'POST',
+        body: {
+            access_token: accessToken,
+            keep_signed_in: keepSignedIn,
+        },
+    })
+);
+
 export const getCurrentUser = () => (
     apiRequest('/auth/me/', { authenticated: true })
 );
@@ -44,5 +54,40 @@ export const logout = (refresh) => (
         method: 'POST',
         authenticated: true,
         body: { refresh },
+    })
+);
+
+export const sendVerificationCode = (channel = 'phone') => (
+    apiRequest('/auth/verification/send/', {
+        method: 'POST',
+        authenticated: true,
+        body: { channel },
+    })
+);
+
+export const confirmVerificationCode = (code, channel = 'phone') => (
+    apiRequest('/auth/verification/confirm/', {
+        method: 'POST',
+        authenticated: true,
+        body: { code, channel },
+    })
+);
+
+export const requestPasswordReset = (email) => (
+    apiRequest('/auth/password-reset/request/', {
+        method: 'POST',
+        body: { email: String(email || '').trim().toLowerCase() },
+    })
+);
+
+export const confirmPasswordReset = ({ uid, token, password, passwordConfirm }) => (
+    apiRequest('/auth/password-reset/confirm/', {
+        method: 'POST',
+        body: {
+            uid,
+            token,
+            new_password: password,
+            new_password_confirm: passwordConfirm,
+        },
     })
 );

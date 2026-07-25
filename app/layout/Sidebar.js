@@ -14,9 +14,54 @@ const Sidebar = ({ navigation }) => {
 
     const navItem = [
         {
+            icon: "bar-chart-2",
+            name: "Seller Dashboard",
+            navigate: "SellerDashboard",
+        },
+        {
+            icon: "trending-up",
+            name: "Ad Analytics",
+            navigate: "SellerAnalytics",
+        },
+        {
+            icon: "refresh-cw",
+            name: "Renewals",
+            navigate: "SellerRenewals",
+        },
+        {
+            icon: "clock",
+            name: "Recently Viewed",
+            navigate: "RecentlyViewed",
+        },
+        {
+            icon: "activity",
+            name: "Activity",
+            navigate: "AccountActivity",
+        },
+        {
+            icon: "bell",
+            name: "Notifications",
+            navigate: "NotificationsCenter",
+        },
+        {
+            icon: "star",
+            name: "My Reviews",
+            navigate: "MyReviews",
+        },
+        {
             icon: "grid",
             name: "Categories",
             navigate: "Categories",
+        },
+        {
+            icon: "users",
+            name: "Trusted Sellers",
+            navigate: "Sellers",
+        },
+        {
+            icon: "help-circle",
+            name: "Help & Safety",
+            navigate: "Help",
         },
         {
             icon: "tag",
@@ -68,7 +113,10 @@ const Sidebar = ({ navigation }) => {
                                         source={user?.profile?.avatar ? { uri: user.profile.avatar } : IMAGES.Small5}
                                     />
                                     <TouchableOpacity
-                                        onPress={() => navigation.navigate('Editprofile')}
+                                        onPress={() => navigation.navigate('DrawerNavigation', {
+                                            screen: 'BottomNavigation',
+                                            params: { screen: 'Profile' },
+                                        })}
                                         style={{
                                             height: 30,
                                             width: 30,

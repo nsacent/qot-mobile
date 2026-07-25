@@ -7,12 +7,14 @@ import React, {
     useState,
 } from 'react';
 import * as authApi from '../api/auth';
+import { updateProfile as updateProfileRequest } from '../api/account';
 import {
     clearSession,
     getSession,
     readSession,
     saveSession,
 } from '../api/session';
+import { unregisterPushNotifications } from '../services/pushNotifications';
 
 const AuthContext = createContext(null);
 
@@ -59,8 +61,19 @@ export const AuthProvider = ({ children }) => {
         return result.user;
     }, []);
 
+    const signInWithFacebook = useCallback(async (accessToken) => {
+        const result = await authApi.loginWithFacebook({
+            accessToken,
+            keepSignedIn: true,
+        });
+        await saveSession({ user: result.user, tokens: result.tokens });
+        setUser(result.user);
+        return result.user;
+    }, []);
+
     const signOut = useCallback(async () => {
         const refresh = getSession()?.tokens?.refresh;
+        await unregisterPushNotifications().catch(() => {});
         try {
             if (refresh) await authApi.logout(refresh);
         } catch {
@@ -70,14 +83,41 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     }, []);
 
+    const refreshUser = useCallback(async () => {
+        const currentUser = await authApi.getCurrentUser();
+        await saveSession({ ...getSession(), user: currentUser });
+        setUser(currentUser);
+        return currentUser;
+    }, []);
+
+    const updateCurrentUser = useCallback(async (details) => {
+        await updateProfileRequest(details);
+        const currentUser = await authApi.getCurrentUser();
+        await saveSession({ ...getSession(), user: currentUser });
+        setUser(currentUser);
+        return currentUser;
+    }, []);
+
     const value = useMemo(() => ({
         user,
         isAuthenticated: Boolean(user),
         isBootstrapping,
         signIn,
         signUp,
+        signInWithFacebook,
         signOut,
-    }), [user, isBootstrapping, signIn, signUp, signOut]);
+        refreshUser,
+        updateCurrentUser,
+    }), [
+        user,
+        isBootstrapping,
+        signIn,
+        signUp,
+        signInWithFacebook,
+        signOut,
+        refreshUser,
+        updateCurrentUser,
+    ]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

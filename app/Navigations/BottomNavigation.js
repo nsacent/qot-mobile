@@ -3,8 +3,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../Screens/Home/Home';
 import Chat from '../Screens/chat/Chat';
 import BottomTab from '../layout/BottomTab';
-import Myads from '../Screens/myads/Myads';
 import Profile from '../Screens/profile/Profile';
+import Saved from '../Screens/saved/Saved';
 
 const Tab = createBottomTabNavigator();
 
@@ -20,9 +20,9 @@ const BottomNavigation = () => {
             tabBar={props => <BottomTab {...props} />}
         >
             <Tab.Screen name="Home" component={HomeScreen} />
-            <Tab.Screen name="Chat" component={Chat} />
+            <Tab.Screen name="Messages" component={Chat} />
             <Tab.Screen name="CreateAd2" component={CreateAd2} />
-            <Tab.Screen name="MyAds" component={Myads} />
+            <Tab.Screen name="Saved" component={Saved} />
             <Tab.Screen name="Profile" component={Profile} />
         </Tab.Navigator>
     );

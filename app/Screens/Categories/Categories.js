@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -6,20 +6,23 @@ import {
     RefreshControl,
     SafeAreaView,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
+import FeatherIcon from 'react-native-vector-icons/Feather';
 import Header from '../../layout/Header';
-import { COLORS, FONTS, SIZES } from '../../constants/theme';
+import { COLORS, FONTS } from '../../constants/theme';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { getCategories } from '../../api/marketplace';
 import { categoryIcon } from '../Home/CategoryList';
 
 const Categories = ({ navigation }) => {
     const { colors } = useTheme();
-    const [layout, setLayout] = useState('grid');
     const [categories, setCategories] = useState([]);
+    const [expandedId, setExpandedId] = useState(null);
+    const [query, setQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState('');
@@ -41,107 +44,85 @@ const Categories = ({ navigation }) => {
         loadCategories();
     }, [loadCategories]);
 
+    const filteredCategories = useMemo(() => {
+        const normalized = query.trim().toLowerCase();
+        if (!normalized) return categories;
+        return categories.flatMap((category) => {
+            const parentMatches = category.name.toLowerCase().includes(normalized);
+            const matchingChildren = (category.children || []).filter((child) => child.name.toLowerCase().includes(normalized));
+            if (!parentMatches && !matchingChildren.length) return [];
+            return [{ ...category, children: parentMatches ? category.children : matchingChildren }];
+        });
+    }, [categories, query]);
+
     const openCategory = (item) => navigation.navigate('Items', {
         cat: item.name,
         categorySlug: item.slug,
     });
 
+    const renderCategory = ({ item }) => {
+        const expanded = Boolean(query.trim()) || String(expandedId) === String(item.id);
+        return (
+            <View style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: expanded ? `${COLORS.primary}55` : colors.borderColor, borderRadius: 16, marginBottom: 12, overflow: 'hidden' }}>
+                <TouchableOpacity onPress={() => setExpandedId((current) => String(current) === String(item.id) ? null : item.id)} activeOpacity={0.84} style={{ minHeight: 76, padding: 12, flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{ height: 50, width: 50, borderRadius: 15, backgroundColor: `${COLORS.primary}10`, alignItems: 'center', justifyContent: 'center' }}><Image source={categoryIcon(item.slug)} style={{ height: 32, width: 32, resizeMode: 'contain' }} /></View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={[FONTS.font, FONTS.fontTitle, { color: colors.title }]}>{item.name}</Text>
+                        <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 3 }]}>{item.children?.length || 0} subcategories · {Number(item.listings_count || 0).toLocaleString()} active ads</Text>
+                    </View>
+                    <FeatherIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={expanded ? COLORS.primary : colors.text} />
+                </TouchableOpacity>
+
+                {expanded && (
+                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, padding: 11 }}>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
+                            {(item.children || []).map((child) => (
+                                <View key={child.id} style={{ width: '50%', paddingHorizontal: 4, marginBottom: 8 }}>
+                                    <TouchableOpacity onPress={() => openCategory(child)} style={{ minHeight: 48, borderRadius: 11, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderColor, paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text numberOfLines={2} style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title, lineHeight: 15 }]}>{child.name}</Text>
+                                            <Text style={[FONTS.fontXs, { color: colors.textLight, fontSize: 9, marginTop: 2 }]}>{Number(child.listings_count || 0).toLocaleString()} ads</Text>
+                                        </View>
+                                        <FeatherIcon name="chevron-right" size={14} color={COLORS.primary} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+                        <TouchableOpacity onPress={() => openCategory(item)} style={{ height: 44, borderRadius: 11, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
+                            <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.white }]}>Browse all {item.name.toLowerCase()}</Text>
+                            <FeatherIcon name="arrow-right" size={16} color={COLORS.white} style={{ marginLeft: 6 }} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+        );
+    };
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <Header
-                leftIcon="back"
-                title="Categories"
-                titleLeft
-                grid
-                handleLayout={setLayout}
-                layout={layout}
-            />
+            <Header leftIcon="back" title="Categories" titleLeft />
+            <View style={[GlobalStyleSheet.container, { paddingTop: 8, paddingBottom: 10 }]}>
+                <Text style={[FONTS.fontSm, { color: colors.text, lineHeight: 20, marginBottom: 12 }]}>Choose a department, then select the closest subcategory for better results.</Text>
+                <View style={{ height: 48, borderWidth: 1, borderColor: colors.borderColor, borderRadius: 12, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13 }}>
+                    <FeatherIcon name="search" size={18} color={colors.text} />
+                    <TextInput value={query} onChangeText={setQuery} placeholder="Search categories" placeholderTextColor={colors.textLight} autoCorrect={false} style={[FONTS.font, { color: colors.title, flex: 1, height: '100%', paddingHorizontal: 10 }]} />
+                    {Boolean(query) && <TouchableOpacity onPress={() => setQuery('')} hitSlop={8}><FeatherIcon name="x-circle" size={18} color={colors.text} /></TouchableOpacity>}
+                </View>
+            </View>
 
             {loading ? (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                </View>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator size="large" color={COLORS.primary} /></View>
             ) : (
                 <FlatList
-                    data={categories}
+                    data={filteredCategories}
                     keyExtractor={(item) => String(item.id)}
-                    key={layout}
-                    numColumns={layout === 'grid' ? 3 : 1}
-                    refreshControl={(
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={() => loadCategories(true)}
-                            tintColor={COLORS.primary}
-                            colors={[COLORS.primary]}
-                        />
-                    )}
-                    contentContainerStyle={[GlobalStyleSheet.container, { paddingVertical: 15, flexGrow: 1 }]}
-                    ListHeaderComponent={error ? (
-                        <TouchableOpacity
-                            onPress={() => loadCategories()}
-                            style={{ backgroundColor: '#FDECEC', borderRadius: 10, padding: 12, marginBottom: 14 }}
-                        >
-                            <Text style={[FONTS.fontSm, { color: COLORS.danger, textAlign: 'center' }] }>
-                                {error} Tap to retry.
-                            </Text>
-                        </TouchableOpacity>
-                    ) : null}
-                    ListEmptyComponent={!error ? (
-                        <Text style={[FONTS.font, { color: colors.text, textAlign: 'center', marginTop: 40 }] }>
-                            No categories are available.
-                        </Text>
-                    ) : null}
-                    renderItem={({ item }) => (
-                        <View
-                            style={layout === 'grid'
-                                ? { width: '33.33%', minHeight: 125, paddingHorizontal: 5, marginBottom: 10 }
-                                : { width: '100%' }}
-                        >
-                            <TouchableOpacity
-                                onPress={() => openCategory(item)}
-                                activeOpacity={0.8}
-                                style={layout === 'grid'
-                                    ? {
-                                        alignItems: 'center',
-                                        backgroundColor: colors.card,
-                                        flex: 1,
-                                        borderRadius: SIZES.radius,
-                                        padding: 10,
-                                        borderWidth: 1,
-                                        borderColor: colors.borderColor,
-                                    }
-                                    : {
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        paddingVertical: 18,
-                                        borderBottomWidth: 1,
-                                        borderBottomColor: colors.border,
-                                    }}
-                            >
-                                <Image
-                                    style={layout === 'grid'
-                                        ? { height: 42, width: 42, resizeMode: 'contain', marginTop: 8, marginBottom: 8 }
-                                        : { height: 28, width: 28, resizeMode: 'contain', marginRight: 13 }}
-                                    source={categoryIcon(item.slug)}
-                                />
-                                <View style={{ flex: 1, justifyContent: 'center' }}>
-                                    <Text
-                                        numberOfLines={2}
-                                        style={layout === 'grid'
-                                            ? { ...FONTS.fontSm, color: colors.title, textAlign: 'center' }
-                                            : { ...FONTS.font, fontSize: 16, color: colors.title }}
-                                    >
-                                        {item.name}
-                                    </Text>
-                                    {layout === 'list' && (
-                                        <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }] }>
-                                            {item.children?.length || 0} subcategories · {item.listings_count || 0} ads
-                                        </Text>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-                    )}
+                    renderItem={renderCategory}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadCategories(true)} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[GlobalStyleSheet.container, { paddingTop: 4, paddingBottom: 40, flexGrow: 1 }]}
+                    ListHeaderComponent={error ? <TouchableOpacity onPress={() => loadCategories()} style={{ backgroundColor: '#FDECEC', borderRadius: 11, padding: 12, marginBottom: 13 }}><Text style={[FONTS.fontSm, { color: COLORS.danger, textAlign: 'center' }]}>{error} Tap to retry.</Text></TouchableOpacity> : null}
+                    ListEmptyComponent={!error ? <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 35 }}><FeatherIcon name="grid" size={31} color={colors.textLight} /><Text style={[FONTS.font, { color: colors.text, textAlign: 'center', marginTop: 11 }]}>No categories match “{query}”.</Text></View> : null}
                 />
             )}
         </SafeAreaView>

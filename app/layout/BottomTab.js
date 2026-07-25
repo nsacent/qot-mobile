@@ -1,8 +1,10 @@
-import React from 'react';
-import { Image, Platform, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS, FONTS, IMAGES } from '../constants/theme';
+import React, { useEffect, useState } from 'react';
+import { Platform, Text, TouchableOpacity, View } from 'react-native';
+import FeatherIcon from 'react-native-vector-icons/Feather';
+import { COLORS, FONTS } from '../constants/theme';
 import { useTheme } from '@react-navigation/native';
 import { GlobalStyleSheet } from '../constants/StyleSheet';
+import { getChatThreads } from '../api/chats';
 
 
 
@@ -10,6 +12,25 @@ const BottomTab = ({ state, descriptors, navigation }) => {
 
     const theme = useTheme();
     const { colors } = theme;
+    const [unreadMessages, setUnreadMessages] = useState(0);
+
+    useEffect(() => {
+        let active = true;
+        const refreshUnread = () => {
+            getChatThreads({ folder: 'unread' })
+                .then((data) => {
+                    if (active) setUnreadMessages(Number(data.tabs?.unread || 0));
+                })
+                .catch(() => {});
+        };
+
+        refreshUnread();
+        const timer = setInterval(refreshUnread, 30000);
+        return () => {
+            active = false;
+            clearInterval(timer);
+        };
+    }, [state.index]);
 
     return (
         <View
@@ -106,16 +127,7 @@ const BottomTab = ({ state, descriptors, navigation }) => {
                                                 borderColor: colors.card,
                                             }}
                                         >
-                                            <Image
-                                                style={{
-                                                    position: 'absolute',
-                                                    height: 20,
-                                                    width: 20,
-                                                    resizeMode: 'contain',
-                                                    tintColor: COLORS.white,
-                                                }}
-                                                source={IMAGES.plus}
-                                            />
+                                            <FeatherIcon name="plus" size={25} color={COLORS.white} />
                                         </View>
                                     </View>
                                 </TouchableOpacity>
@@ -137,21 +149,39 @@ const BottomTab = ({ state, descriptors, navigation }) => {
                                         paddingVertical: 9,
                                     }}
                                 >
-                                    <Image
-                                        style={{
-                                            height: 20,
-                                            width: 20,
-                                            tintColor: isFocused ? COLORS.primary : colors.title,
-                                            marginBottom: 3,
-                                            marginTop: 1,
-                                        }}
-                                        source={
-                                            label === 'Home' ? IMAGES.home :
-                                                label === 'Chat' ? IMAGES.chat :
-                                                    label === 'MyAds' ? IMAGES.ads :
-                                                        label === 'Profile' ? IMAGES.profile : IMAGES.home
+                                    <FeatherIcon
+                                        name={
+                                            label === 'Home' ? 'home' :
+                                            label === 'Messages' ? 'message-circle' :
+                                            label === 'Saved' ? 'heart' :
+                                            label === 'Profile' ? 'user' : 'home'
                                         }
+                                        size={21}
+                                        color={isFocused ? COLORS.primary : colors.text}
+                                        style={{ marginBottom: 3, marginTop: 1 }}
                                     />
+                                    {label === 'Messages' && unreadMessages > 0 && (
+                                        <View
+                                            style={{
+                                                position: 'absolute',
+                                                top: 3,
+                                                right: -7,
+                                                minWidth: 17,
+                                                height: 17,
+                                                borderRadius: 9,
+                                                paddingHorizontal: 4,
+                                                backgroundColor: COLORS.danger,
+                                                borderWidth: 2,
+                                                borderColor: colors.card,
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <Text style={{ color: COLORS.white, fontSize: 8, lineHeight: 10, fontFamily: 'PoppinsSemiBold' }}>
+                                                {unreadMessages > 99 ? '99+' : unreadMessages}
+                                            </Text>
+                                        </View>
+                                    )}
                                     <Text style={{ ...FONTS.fontSm, color: isFocused ? COLORS.primary : colors.title }}>{label}</Text>
                                 </TouchableOpacity>
                             </View>

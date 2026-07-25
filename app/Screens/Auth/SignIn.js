@@ -11,6 +11,7 @@ import {
 import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
+import FacebookSignInButton from '../../components/FacebookSignInButton';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -96,7 +97,16 @@ const SignIn = ({ navigation }) => {
                     </View>
 
                     <View style={GlobalStyleSheet.inputGroup}>
-                        <Text style={[GlobalStyleSheet.label, { color: colors.title }]}>Password</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Text style={[GlobalStyleSheet.label, { color: colors.title }]}>Password</Text>
+                            <TouchableOpacity
+                                onPress={() => navigation.navigate('ResetPassword')}
+                                activeOpacity={0.75}
+                                style={{ paddingVertical: 5, paddingLeft: 12, marginTop: -5 }}
+                            >
+                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary }]}>Forgot password?</Text>
+                            </TouchableOpacity>
+                        </View>
                         <View>
                             <TouchableOpacity
                                 onPress={() => setShowPassword((value) => !value)}
@@ -135,6 +145,14 @@ const SignIn = ({ navigation }) => {
                         color={COLORS.primary}
                         title={isSubmitting ? 'Signing in...' : 'Sign in'}
                     />
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 19 }}>
+                        <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                        <Text style={[FONTS.fontSm, { color: colors.text, marginHorizontal: 12 }]}>or</Text>
+                        <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                    </View>
+
+                    <FacebookSignInButton navigation={navigation} />
 
                     <View style={{ marginTop: 22 }}>
                         <Text style={{ ...FONTS.font, color: colors.title, textAlign: 'center', marginBottom: 12 }}>

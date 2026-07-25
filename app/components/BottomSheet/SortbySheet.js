@@ -98,8 +98,6 @@ const SortbySheet = (props, ref) => {
                             <RadioButton.Item labelStyle={{color:colors.title}} color={COLORS.primary} uncheckedColor={COLORS.label} style={{paddingVertical:2}} label="What's new" value="newest" />
                             <RadioButton.Item labelStyle={{color:colors.title}} color={COLORS.primary} uncheckedColor={COLORS.label} style={{paddingVertical:2}} label="Price - high to low" value="price-hightolow" />
                             <RadioButton.Item labelStyle={{color:colors.title}} color={COLORS.primary} uncheckedColor={COLORS.label} style={{paddingVertical:2}} label="Price - low to hight" value="price-lowtohigh" />
-                            <RadioButton.Item labelStyle={{color:colors.title}} color={COLORS.primary} uncheckedColor={COLORS.label} style={{paddingVertical:2}} label="Popularity" value="popularity" />
-                            <RadioButton.Item labelStyle={{color:colors.title}} color={COLORS.primary} uncheckedColor={COLORS.label} style={{paddingVertical:2}} label="Trending" value="Trending" />
                         </RadioButton.Group>
                     </View>
                 </ScrollView>

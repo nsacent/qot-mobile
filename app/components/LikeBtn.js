@@ -4,7 +4,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { COLORS } from '../constants/theme';
 import { addFavorite, removeFavorite } from '../api/marketplace';
 
-const LikeBtn = ({ listingId, initialLiked = false, onChange }) => {
+const LikeBtn = ({ listingId, initialLiked = false, onChange, onError }) => {
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [pending, setPending] = useState(false);
 
@@ -24,8 +24,8 @@ const LikeBtn = ({ listingId, initialLiked = false, onChange }) => {
             const nextValue = Boolean(result?.is_favorited);
             setIsLiked(nextValue);
             onChange?.(nextValue, result);
-        } catch {
-            // Keep the current state; authenticated API errors are surfaced elsewhere.
+        } catch (requestError) {
+            onError?.(requestError);
         } finally {
             setPending(false);
         }

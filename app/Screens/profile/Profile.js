@@ -1,212 +1,338 @@
-import React from 'react'
-import { View, Text, SafeAreaView, Image, TouchableOpacity, Share } from 'react-native'
-import { useTheme } from '@react-navigation/native'
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    Image,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    Share,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { useTheme } from '@react-navigation/native';
+import FeatherIcon from 'react-native-vector-icons/Feather';
+import Header from '../../layout/Header';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
-import FeatherIcon from 'react-native-vector-icons/Feather';
-import { ScrollView } from 'react-native-gesture-handler';
-
-
-
-const profileData = [
-    {
-        id: "1",
-        title: "NIKON CORPORATION, NIKON D5500",
-        price: "$1288.50",
-        image: IMAGES.car1,
-        location: "La Molina, Peru",
-        date: "17 Oct"
-    },
-    {
-        id: "2",
-        title: "NIKON CORPORATION, NIKON D5500",
-        price: "$1288.50",
-        image: IMAGES.car2,
-        location: "La Molina, Peru",
-        date: "17 Oct"
-    },
-    {
-        id: "3",
-        title: "NIKON CORPORATION, NIKON D5500",
-        price: "$1288.50",
-        image: IMAGES.car3,
-        location: "La Molina, Peru",
-        date: "17 Oct"
-    },
-    {
-        id: "4",
-        title: "NIKON CORPORATION, NIKON D5500",
-        price: "$1288.50",
-        image: IMAGES.car4,
-        location: "La Molina, Peru",
-        date: "17 Oct"
-    },
-    {
-        id: "5",
-        title: "NIKON CORPORATION, NIKON D5500",
-        price: "$1288.50",
-        image: IMAGES.car5,
-        location: "La Molina, Peru",
-        date: "17 Oct"
-    },
-    {
-        id: "6",
-        title: "NIKON CORPORATION, NIKON D5500",
-        price: "$1288.50",
-        image: IMAGES.car6,
-        location: "La Molina, Peru",
-        date: "17 Oct"
-    },
-]
+import { useAuth } from '../../context/AuthContext';
+import { getMyListings } from '../../api/marketplace';
+import { formatDate } from '../../utils/formatters';
 
 const Profile = ({ navigation }) => {
+    const { colors } = useTheme();
+    const { user, refreshUser, signOut } = useAuth();
+    const [ads, setAds] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const theme = useTheme();
-    const { colors } = theme;
-
-    const onShare = async () => {
+    const loadProfile = useCallback(async (showRefresh = false) => {
+        if (showRefresh) setRefreshing(true);
         try {
-            const result = await Share.share({
-                message:
-                    'Share your profile link here.',
-            });
-            if (result.action === Share.sharedAction) {
-                if (result.activityType) {
-                    // shared with activity type of result.activityType
-                } else {
-                    // shared
-                }
-            } else if (result.action === Share.dismissedAction) {
-                // dismissed
-            }
-        } catch (error) {
-            alert(error.message);
+            const [, myAds] = await Promise.all([refreshUser(), getMyListings()]);
+            setAds(myAds);
+        } catch {
+            // Keep the last usable profile visible when a refresh fails.
+        } finally {
+            setRefreshing(false);
         }
+    }, [refreshUser]);
+
+    useEffect(() => {
+        loadProfile();
+        return navigation.addListener('focus', () => loadProfile());
+    }, [loadProfile, navigation]);
+
+    const activeAds = useMemo(
+        () => ads.filter((ad) => ad.status === 'active').length,
+        [ads],
+    );
+
+    const profileProgress = useMemo(() => {
+        const checks = [
+            { complete: Boolean(user?.full_name?.trim()), label: 'Add your full name', action: 'edit' },
+            { complete: Boolean(user?.phone_verified || user?.phone_verified_at), label: 'Verify your phone number', action: 'verify' },
+            { complete: Boolean(user?.profile?.avatar), label: 'Add a profile picture', action: 'edit' },
+            { complete: Boolean(user?.profile?.cover_photo), label: 'Add a cover photo', action: 'edit' },
+            { complete: Boolean(user?.profile?.bio?.trim()), label: 'Write a short seller bio', action: 'edit' },
+            { complete: Boolean(user?.profile?.default_city), label: 'Choose your default location', action: 'edit' },
+        ];
+        const completed = checks.filter((item) => item.complete).length;
+        return {
+            completed,
+            total: checks.length,
+            percent: Math.round((completed / checks.length) * 100),
+            next: checks.find((item) => !item.complete),
+        };
+    }, [user]);
+
+    const openNetwork = (initialTab) => navigation.navigate('FollowerFollowing', {
+        userId: user?.id,
+        initialTab,
+    });
+
+    const handleSignOut = async () => {
+        await signOut();
+        navigation.getParent()?.getParent()?.reset({ index: 0, routes: [{ name: 'SignIn' }] });
     };
 
+    const shareProfile = () => {
+        if (!user?.id) return;
+        Share.share({
+            message: `View ${user.full_name || 'my seller profile'} on QOT Uganda: https://qot.ug/sellers/${user.id}`,
+        }).catch(() => {});
+    };
+
+    const continueProfile = () => navigation.navigate(
+        profileProgress.next?.action === 'verify' ? 'VerifyAccount' : 'Editprofile',
+    );
+
+    const actions = [
+        {
+            icon: 'bar-chart-2',
+            label: 'Seller dashboard',
+            detail: 'Performance, expiry and renewal overview',
+            onPress: () => navigation.navigate('SellerDashboard'),
+        },
+        {
+            icon: 'trending-up',
+            label: 'Ad analytics',
+            detail: 'Views, saves and buyer conversations',
+            onPress: () => navigation.navigate('SellerAnalytics'),
+        },
+        {
+            icon: 'refresh-cw',
+            label: 'Renewals',
+            detail: 'Expiry dates and ads that need attention',
+            onPress: () => navigation.navigate('SellerRenewals'),
+        },
+        {
+            icon: 'tag',
+            label: 'My ads',
+            detail: 'Manage active, pending and draft ads',
+            onPress: () => navigation.navigate('MyAds', { initialTab: 'ads' }),
+        },
+        {
+            icon: 'users',
+            label: 'Trusted sellers',
+            detail: 'Browse verified and highly rated sellers',
+            onPress: () => navigation.navigate('Sellers'),
+        },
+        {
+            icon: 'heart',
+            label: 'Saved ads',
+            detail: 'Return to ads you want to see again',
+            onPress: () => navigation.navigate('Saved', { initialTab: 'ads' }),
+        },
+        {
+            icon: 'bookmark',
+            label: 'Saved searches',
+            detail: 'Manage searches and matching-ad alerts',
+            onPress: () => navigation.navigate('Saved', { initialTab: 'searches' }),
+        },
+        {
+            icon: 'clock',
+            label: 'Recently viewed',
+            detail: 'Return to ads you opened recently',
+            onPress: () => navigation.navigate('RecentlyViewed'),
+        },
+        {
+            icon: 'columns',
+            label: 'Compare ads',
+            detail: 'Compare price, condition and specifications',
+            onPress: () => navigation.navigate('CompareAds'),
+        },
+        {
+            icon: 'activity',
+            label: 'Activity',
+            detail: 'Your alerts, ads, saves and reviews',
+            onPress: () => navigation.navigate('AccountActivity'),
+        },
+        {
+            icon: 'bell',
+            label: 'Notifications',
+            detail: 'Read your latest ad, account and message updates',
+            onPress: () => navigation.navigate('NotificationsCenter'),
+        },
+        {
+            icon: 'star',
+            label: 'My reviews',
+            detail: 'See reviews you have submitted for sellers',
+            onPress: () => navigation.navigate('MyReviews'),
+        },
+        {
+            icon: 'message-circle',
+            label: 'Messages',
+            detail: 'Continue conversations with buyers and sellers',
+            onPress: () => navigation.navigate('Messages'),
+        },
+        {
+            icon: 'settings',
+            label: 'Account settings',
+            detail: 'Profile, notifications, privacy and security',
+            onPress: () => navigation.navigate('Setting'),
+        },
+    ];
+
     return (
-        <SafeAreaView style={{ backgroundColor: colors.card, flex: 1 }}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={[GlobalStyleSheet.container, { paddingBottom: 80 }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <TouchableOpacity style={{ padding: 10 }}
-                            onPress={() => navigation.goBack()}
+        <SafeAreaView style={{ backgroundColor: colors.background, flex: 1 }}>
+            <Header title="My account" titleLeft />
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                refreshControl={(
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => loadProfile(true)}
+                        tintColor={COLORS.primary}
+                        colors={[COLORS.primary]}
+                    />
+                )}
+                contentContainerStyle={{ paddingBottom: 105 }}
+            >
+                <View style={GlobalStyleSheet.container}>
+                    {!user?.phone_verified && (
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('VerifyAccount')}
+                            activeOpacity={0.85}
+                            style={{ backgroundColor: '#FFF0F0', borderWidth: 1, borderColor: '#F8B4B4', borderRadius: 14, padding: 14, marginTop: 8, marginBottom: 15, flexDirection: 'row', alignItems: 'center' }}
                         >
-                            <Image
-                                style={{ width: 18, height: 18, tintColor: colors.title }}
-                                source={IMAGES.arrowleft}
-                            />
+                            <View style={{ height: 38, width: 38, borderRadius: 19, backgroundColor: COLORS.danger, alignItems: 'center', justifyContent: 'center' }}>
+                                <FeatherIcon name="alert-triangle" size={19} color={COLORS.white} />
+                            </View>
+                            <View style={{ flex: 1, marginLeft: 11 }}>
+                                <Text style={[FONTS.font, FONTS.fontTitle, { color: '#B42318' }]}>Verify your phone number</Text>
+                                <Text style={[FONTS.fontXs, { color: '#9B2C2C', marginTop: 2, lineHeight: 17 }]}>Verification protects your account and is required before posting ads.</Text>
+                            </View>
+                            <FeatherIcon name="chevron-right" size={20} color="#B42318" />
                         </TouchableOpacity>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <TouchableOpacity style={{ padding: 10, }}
-                                onPress={onShare}
-                            >
-                                <Image
-                                    style={{ width: 18, height: 18, tintColor: colors.title }}
-                                    source={IMAGES.share}
-                                />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={{ padding: 10, }}
-                                onPress={() => navigation.navigate('Setting')}
-                            >
-                                <Image
-                                    style={{ width: 20, height: 20, resizeMode: 'contain', tintColor: colors.title }}
-                                    source={IMAGES.settings}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    <View style={[GlobalStyleSheet.shadow2, { borderWidth: 0, backgroundColor: COLORS.primary, marginTop: 20, borderRadius: 20 }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, margin: 10, marginBottom: 10 }}>
-                            <Image
-                                style={{ height: 18, width: 18, resizeMode: 'contain', tintColor: '#fff' }}
-                                source={IMAGES.calendar}
-                            />
-                            <Text style={{ ...FONTS.fontRegular, fontSize: 13, color: COLORS.white }}>Member Since Oct 2023</Text>
-                        </View>
-                        <View style={{ backgroundColor: COLORS.secondary, flex: 1, padding: 20, borderRadius: 20, alignItems: 'center', borderTopLeftRadius: 25, borderTopRightRadius: 25 }}>
-                            <View style={{ backgroundColor: 'rgba(255,255,255,0.9)', width: 85, height: 85, borderRadius: 50, alignItems: 'center', justifyContent: 'center' }}>
-                                <Image
-                                    style={{ height: 80, width: 80, borderRadius: 50 }}
-                                    source={IMAGES.Small5}
-                                />
-                            </View>
-                            <Text style={[FONTS.fontLg, FONTS.fontSemiBold, { color: COLORS.white, fontSize: 18, marginTop: 10 }]}>Deepesh Gour</Text>
-                            <Text style={[FONTS.font, { color: COLORS.white, marginTop: 5, opacity: .7 }]}>deepeshgour756@gmail.com</Text>
-                            <View style={{ backgroundColor: COLORS.white, paddingTop: 5, borderRadius: 9, marginTop: 15, flexDirection: 'row', gap: 20, paddingHorizontal: 20 }}>
-                                <TouchableOpacity style={{ alignItems: 'center' }}
-                                    onPress={() => navigation.navigate('FollowerFollowing')}
-                                >
-                                    <Text style={{ ...FONTS.h6, ...FONTS.fontMedium, color: COLORS.title, }}>1520</Text>
-                                    <Text style={{ ...FONTS.fontRegular, fontSize: 12, color: COLORS.title, opacity: .7, lineHeight: 14 }}>Followers</Text>
-                                </TouchableOpacity>
-                                <LinearGradient colors={['rgba(0, 0, 0, 0.0)', 'rgba(18, 9, 46, 0.20)', 'rgba(0, 0, 0, 0.0)']}
-                                    style={{ width: 2, height: 50 }}
-                                ></LinearGradient>
-                                <TouchableOpacity style={{ alignItems: 'center' }}
-                                    onPress={() => navigation.navigate('FollowerFollowing')}
-                                >
-                                    <Text style={{ ...FONTS.h6, ...FONTS.fontMedium, color: COLORS.title }}>360</Text>
-                                    <Text style={{ ...FONTS.fontRegular, fontSize: 12, color: COLORS.title, opacity: .7, lineHeight: 14 }}>Following</Text>
-                                </TouchableOpacity>
-                            </View>
-                            <TouchableOpacity style={{ backgroundColor: COLORS.primary, padding: 10, borderRadius: 50, position: 'absolute', top: 10, right: 10 }}
-                                onPress={() => navigation.navigate('Editprofile')}
-                            >
-                                <Image
-                                    style={{ height: 18, width: 18, tintColor: '#fff' }}
-                                    source={IMAGES.write}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    <View style={{ paddingVertical: 10 }}>
-                        <Text style={{ ...FONTS.fontMedium, color: colors.title, fontSize: 16 }}>All Post</Text>
-                    </View>
-                    <View>
-                        {profileData.map((item, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={[GlobalStyleSheet.shadow2,
-                                {
-                                    borderColor: colors.border,
-                                    backgroundColor: colors.card,
-                                    padding: 10,
-                                    marginBottom: 20
-                                }
-                                ]}
-                                onPress={() => navigation.navigate('ItemDetails')}
-                            >
-                                <View style={{ flexDirection: 'row' }}>
-                                    <Image
-                                        style={{ width: 70, height: 70, borderRadius: 6 }}
-                                        source={item.image}
-                                    />
-                                    <View style={{ marginLeft: 10, flex: 1, paddingRight: 20 }}>
-                                        <Text style={{ ...FONTS.font, ...FONTS.fontMedium, color: colors.title, fontSize: 16 }}>{item.price}</Text>
-                                        <Text numberOfLines={1} style={{ ...FONTS.fontSm, ...FONTS.fontSemiBold, color: colors.title, marginTop: 2, }}>{item.title}</Text>
-                                        <View
-                                            style={{
-                                                flexDirection: 'row',
-                                                marginTop: 5,
-                                            }}
-                                        >
-                                            <FeatherIcon size={12} color={colors.text} name={'map-pin'} />
-                                            <Text style={[FONTS.fontXs, { fontSize: 11, color: colors.text, marginLeft: 4 }]}>{item.location}</Text>
-                                        </View>
-                                    </View>
-                                    <View style={{ bottom: 0, justifyContent: 'flex-end' }}>
-                                        <Text style={{ ...FONTS.fontRegular, fontSize: 12, color: colors.title, opacity: .7 }}>{item.date}</Text>
-                                    </View>
+                    )}
+
+                    {profileProgress.percent < 100 && (
+                        <TouchableOpacity onPress={continueProfile} activeOpacity={0.84} style={{ borderRadius: 15, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.card, padding: 13, marginBottom: 15 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <View style={{ height: 38, width: 38, borderRadius: 12, backgroundColor: `${COLORS.primary}12`, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="user-check" size={18} color={COLORS.primary} /></View>
+                                <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+                                    <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>Complete your seller profile</Text>
+                                    <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }]}>Next: {profileProgress.next?.label}</Text>
                                 </View>
+                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary }]}>{profileProgress.percent}%</Text>
+                                <FeatherIcon name="chevron-right" size={18} color={COLORS.primary} style={{ marginLeft: 4 }} />
+                            </View>
+                            <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.background, overflow: 'hidden', marginTop: 11 }}>
+                                <View style={{ height: '100%', width: `${profileProgress.percent}%`, borderRadius: 3, backgroundColor: COLORS.primary }} />
+                            </View>
+                            <Text style={[FONTS.fontXs, { color: colors.textLight, fontSize: 9, marginTop: 6 }]}>{profileProgress.completed} of {profileProgress.total} profile steps complete</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    <View style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderColor, borderRadius: 18, overflow: 'hidden' }}>
+                        <View style={{ height: 142, backgroundColor: '#FFF3E8' }}>
+                            {user?.profile?.cover_photo ? (
+                                <Image source={{ uri: user.profile.cover_photo }} style={{ height: '100%', width: '100%' }} resizeMode="cover" />
+                            ) : (
+                                <View style={{ flex: 1, overflow: 'hidden', justifyContent: 'flex-end' }}>
+                                    <View style={{ position: 'absolute', height: 180, width: 180, borderRadius: 90, backgroundColor: '#FED7AA', right: -32, top: -82 }} />
+                                    <View style={{ position: 'absolute', height: 120, width: 120, borderRadius: 60, backgroundColor: '#FDBA74', left: -28, bottom: -64 }} />
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={{ paddingHorizontal: 16, paddingBottom: 18 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: -40 }}>
+                                <View style={{ height: 88, width: 88, borderRadius: 44, padding: 4, backgroundColor: colors.card }}>
+                                    <Image
+                                        source={user?.profile?.avatar ? { uri: user.profile.avatar } : IMAGES.user}
+                                        style={{ height: 80, width: 80, borderRadius: 40, backgroundColor: '#F1F2F5' }}
+                                        resizeMode="cover"
+                                    />
+                                </View>
+                                <View style={{ marginLeft: 'auto', marginBottom: 4, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                                    <TouchableOpacity onPress={shareProfile} accessibilityLabel="Share seller profile" style={{ height: 38, width: 38, borderWidth: 1, borderColor: colors.borderColor, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
+                                        <FeatherIcon name="share-2" size={15} color={colors.title} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => navigation.navigate('Editprofile')}
+                                        style={{ height: 38, borderWidth: 1, borderColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center' }}
+                                    >
+                                        <FeatherIcon name="edit-2" size={13} color={COLORS.primary} />
+                                        <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.primary, marginLeft: 5 }]}>Edit profile</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+                                <Text style={[FONTS.h5, { color: colors.title, flexShrink: 1 }]}>{user?.full_name || 'QOT user'}</Text>
+                                {user?.is_verified && <FeatherIcon name="check-circle" size={17} color={COLORS.primary} style={{ marginLeft: 7 }} />}
+                            </View>
+                            {user?.profile?.business_name ? (
+                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary, marginTop: 2 }]}>{user.profile.business_name}</Text>
+                            ) : null}
+                            <Text style={[FONTS.fontSm, { color: colors.text, marginTop: 4 }]}>{user?.phone || user?.email || 'Complete your contact details'}</Text>
+                            {user?.profile?.bio ? (
+                                <Text style={[FONTS.fontSm, { color: colors.title, marginTop: 10, lineHeight: 20 }]}>{user.profile.bio}</Text>
+                            ) : null}
+
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <FeatherIcon name="map-pin" size={14} color={colors.text} />
+                                    <Text style={[FONTS.fontXs, { color: colors.text, marginLeft: 5 }]}>
+                                        {user?.profile?.default_city_name || 'Location not set'}
+                                    </Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <FeatherIcon name="calendar" size={14} color={colors.text} />
+                                    <Text style={[FONTS.fontXs, { color: colors.text, marginLeft: 5 }]}>Joined {formatDate(user?.date_joined)}</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.border }}>
+                            {[
+                                ['Active ads', activeAds, () => navigation.navigate('MyAds', { initialTab: 'ads' })],
+                                ['Followers', user?.followers_count || 0, () => openNetwork('followers')],
+                                ['Following', user?.following_count || 0, () => openNetwork('following')],
+                            ].map(([label, value, onPress], index) => (
+                                <TouchableOpacity
+                                    key={label}
+                                    onPress={onPress}
+                                    style={{ flex: 1, alignItems: 'center', paddingVertical: 13, borderLeftWidth: index ? 1 : 0, borderLeftColor: colors.border }}
+                                >
+                                    <Text style={[FONTS.h6, { color: colors.title }]}>{value}</Text>
+                                    <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }]}>{label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+
+                    <Text style={[FONTS.h6, { color: colors.title, marginTop: 23, marginBottom: 10 }]}>Your QOT</Text>
+                    <View style={{ borderWidth: 1, borderColor: colors.borderColor, borderRadius: 16, overflow: 'hidden' }}>
+                        {actions.map((action, index) => (
+                            <TouchableOpacity
+                                key={action.label}
+                                onPress={action.onPress}
+                                style={{ flexDirection: 'row', alignItems: 'center', minHeight: 70, paddingHorizontal: 15, backgroundColor: colors.card, borderTopWidth: index ? 1 : 0, borderTopColor: colors.border }}
+                            >
+                                <View style={{ height: 40, width: 40, borderRadius: 11, backgroundColor: `${COLORS.primary}12`, alignItems: 'center', justifyContent: 'center' }}>
+                                    <FeatherIcon name={action.icon} size={19} color={COLORS.primary} />
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 12 }}>
+                                    <Text style={[FONTS.font, FONTS.fontTitle, { color: colors.title }]}>{action.label}</Text>
+                                    <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }]}>{action.detail}</Text>
+                                </View>
+                                <FeatherIcon name="chevron-right" size={19} color={colors.textLight} />
                             </TouchableOpacity>
                         ))}
                     </View>
+
+                    <TouchableOpacity
+                        onPress={handleSignOut}
+                        style={{ height: 50, borderWidth: 1, borderColor: COLORS.danger, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 18 }}
+                    >
+                        <FeatherIcon name="log-out" size={18} color={COLORS.danger} />
+                        <Text style={[FONTS.font, FONTS.fontTitle, { color: COLORS.danger, marginLeft: 8 }]}>Sign out</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </SafeAreaView>
-    )
-}
+    );
+};
 
-export default Profile
+export default Profile;

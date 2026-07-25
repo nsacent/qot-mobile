@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Linking } from "react-native";
+import * as Notifications from "expo-notifications";
 import { 
   NavigationContainer, 
   DefaultTheme as NavigationDefaultTheme,
@@ -8,6 +10,41 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import StackNavigator from "./StackNavigator";
 import themeContext from "../constants/themeContext";
 import { COLORS } from "../constants/theme";
+
+const linking = {
+  prefixes: ['qot://', 'https://qot.ug'],
+  config: {
+    screens: {
+      ItemDetails: 'ads/:listingId',
+      Anotherprofile: 'sellers/:sellerId',
+      Sellers: 'sellers',
+      ResetPassword: 'reset-password',
+      SingleChat: 'messages/:threadId',
+      NotificationsCenter: 'notifications',
+      ListingAnalytics: 'account/analytics/:listingId',
+      CompareAds: 'compare',
+    },
+  },
+  async getInitialURL() {
+    const url = await Linking.getInitialURL();
+    if (url) return url;
+    const response = Notifications.getLastNotificationResponse();
+    const notificationUrl = response?.notification?.request?.content?.data?.url;
+    return typeof notificationUrl === 'string' ? notificationUrl : null;
+  },
+  subscribe(listener) {
+    const linkSubscription = Linking.addEventListener('url', ({ url }) => listener(url));
+    const notificationSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const notificationUrl = response.notification.request.content.data?.url;
+      if (typeof notificationUrl === 'string') listener(notificationUrl);
+    });
+
+    return () => {
+      linkSubscription.remove();
+      notificationSubscription.remove();
+    };
+  },
+};
 
 
 const Routes = () => {
@@ -33,7 +70,7 @@ const Routes = () => {
       textLight : COLORS.textLight,
       input : COLORS.input,
       borderColor : COLORS.borderColor,
-      border : "rgba(18,9,46,.1)",
+      border : "rgba(15,23,42,.1)",
     }
   }
   
@@ -57,7 +94,7 @@ const Routes = () => {
   return (
     <SafeAreaProvider>
       <themeContext.Provider value={authContext}>
-        <NavigationContainer theme={theme}>
+        <NavigationContainer theme={theme} linking={linking}>
           <StackNavigator/>
         </NavigationContainer>
       </themeContext.Provider>

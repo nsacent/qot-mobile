@@ -2,6 +2,10 @@
   "expo": {
     "name": "QOT Uganda",
     "slug": "qot-mobile",
+    "scheme": [
+      "qot",
+      "fb2278313346334664"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +17,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "ug.qot.mobile",
+      "associatedDomains": [
+        "applinks:qot.ug"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -21,19 +29,69 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.deepeshgour.classifind"
+      "package": "ug.qot.mobile",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "qot.ug",
+              "pathPrefix": "/ads"
+            },
+            {
+              "scheme": "https",
+              "host": "qot.ug",
+              "pathPrefix": "/sellers"
+            },
+            {
+              "scheme": "https",
+              "host": "qot.ug",
+              "pathPrefix": "/reset-password"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
+      "facebookAppId": "2278313346334664",
       "eas": {
         "projectId": "fec4bdbe-aba0-4c0a-8781-d0c64b6ab462"
       }
     },
     "plugins": [
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow QOT Uganda to choose photos for your ads and profile.",
+          "cameraPermission": "Allow QOT Uganda to take photos for your ads and profile."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow QOT Uganda to use your location to show ads near you."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#F97316",
+          "defaultChannel": "qot-updates"
+        }
+      ]
     ]
   }
 }

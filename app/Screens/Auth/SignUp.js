@@ -12,6 +12,7 @@ import { Checkbox } from 'react-native-paper';
 import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
+import FacebookSignInButton from '../../components/FacebookSignInButton';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -37,8 +38,8 @@ const SignUp = ({ navigation }) => {
     };
 
     const handleSignUp = async () => {
-        if (!form.fullName.trim() || !form.phone.trim() || !form.password) {
-            setError('Full name, phone number, and password are required.');
+        if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim() || !form.password) {
+            setError('Full name, phone number, email, and password are required.');
             return;
         }
         if (form.password.length < 8) {
@@ -57,10 +58,16 @@ const SignUp = ({ navigation }) => {
         setError('');
         setIsSubmitting(true);
         try {
-            await signUp(form);
-            navigation.reset({
+            const createdUser = await signUp(form);
+            navigation.reset(createdUser.is_verified ? {
                 index: 0,
                 routes: [{ name: 'DrawerNavigation' }],
+            } : {
+                index: 1,
+                routes: [
+                    { name: 'DrawerNavigation' },
+                    { name: 'VerifyAccount' },
+                ],
             });
         } catch (requestError) {
             setError(requestError.message);
@@ -106,7 +113,7 @@ const SignUp = ({ navigation }) => {
                     {[
                         ['fullName', 'Full name', 'Your full name', 'default'],
                         ['phone', 'Ugandan phone number', 'e.g. 0700 000 001', 'phone-pad'],
-                        ['email', 'Email (optional)', 'you@example.com', 'email-address'],
+                        ['email', 'Email address', 'you@example.com', 'email-address'],
                     ].map(([field, label, placeholder, keyboardType]) => (
                         <View key={field} style={GlobalStyleSheet.inputGroup}>
                             <Text style={[GlobalStyleSheet.label, { color: colors.title }]}>{label}</Text>
@@ -177,6 +184,17 @@ const SignUp = ({ navigation }) => {
                         color={COLORS.primary}
                         title={isSubmitting ? 'Creating account...' : 'Create account'}
                     />
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 19 }}>
+                        <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                        <Text style={[FONTS.fontSm, { color: colors.text, marginHorizontal: 12 }]}>or</Text>
+                        <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                    </View>
+
+                    <FacebookSignInButton navigation={navigation} mode="sign-up" />
+                    <Text style={[FONTS.fontXs, { color: colors.text, textAlign: 'center', lineHeight: 17, marginTop: 10 }] }>
+                        By continuing with Facebook, you agree to QOT Uganda's Terms and Privacy Policy.
+                    </Text>
 
                     <View style={{ flexDirection: 'row', marginTop: 18, marginBottom: 24, justifyContent: 'center' }}>
                         <Text style={{ ...FONTS.font, color: colors.text, marginRight: 5 }}>

@@ -1,144 +1,449 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
     Image,
+    Modal,
+    Pressable,
     RefreshControl,
     SafeAreaView,
     ScrollView,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
-import Octicons from 'react-native-vector-icons/Octicons';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import SearchBar from '../../components/SearchBar';
 import { COLORS, FONTS, IMAGES, SIZES } from '../../constants/theme';
 import CardStyle1 from '../../components/Card/CardStyle1';
-import { getListings } from '../../api/marketplace';
+import MarketplaceSelectionModal from '../../components/MarketplaceSelectionModal';
+import {
+    createSavedSearch,
+    getCategories,
+    getCategoryFilters,
+    getListingFacets,
+    getListingsPage,
+    getRegions,
+} from '../../api/marketplace';
+import { useAuth } from '../../context/AuthContext';
+import { recordRecentSearch } from '../../utils/recentSearches';
+import { getComparisonAds } from '../../utils/compareAds';
+import {
+    addDistancesToListings,
+    getStoredBuyerLocation,
+    requestBuyerLocation,
+} from '../../utils/nearbyAds';
 
 const sortOptions = [
     { label: 'Newest', value: 'newest' },
-    { label: 'Price: Low', value: 'price_low' },
-    { label: 'Price: High', value: 'price_high' },
-    { label: 'Popular', value: 'popular' },
+    { label: 'Lowest price', value: 'price_low' },
+    { label: 'Highest price', value: 'price_high' },
+    { label: 'Most viewed', value: 'most_viewed' },
 ];
+
+const emptyFilters = () => ({
+    minPrice: '',
+    maxPrice: '',
+    condition: '',
+    negotiable: false,
+    verified: false,
+    postedWithin: '',
+    fields: {},
+});
+
+const standardFilterKeys = new Set([
+    'category', 'city', 'region', 'min_price', 'max_price', 'condition',
+    'is_negotiable', 'negotiable', 'verified_seller', 'posted_within',
+    'search', 'q', 'sort', 'page', 'page_size',
+]);
+
+const truthyFilter = (value) => value === true || value === 'true' || value === 1 || value === '1';
+
+const restoredFilters = (saved = {}) => ({
+    minPrice: String(saved.min_price || ''),
+    maxPrice: String(saved.max_price || ''),
+    condition: String(saved.condition || ''),
+    negotiable: truthyFilter(saved.is_negotiable ?? saved.negotiable),
+    verified: truthyFilter(saved.verified_seller),
+    postedWithin: String(saved.posted_within || ''),
+    fields: Object.fromEntries(Object.entries(saved).filter(([key, value]) => !standardFilterKeys.has(key) && value !== '' && value !== undefined && value !== null)),
+});
+
+const flattenCategories = (categories) => categories.flatMap((category) => (
+    category.children?.length ? [category, ...category.children] : [category]
+));
 
 const Items = ({ route, navigation }) => {
     const { colors } = useTheme();
-    const { cat = 'All listings', categorySlug, searchQuery = '' } = route.params || {};
+    const { isAuthenticated } = useAuth();
+    const { cat = 'All ads', categorySlug, searchQuery = '', savedFilters = {}, nearby = false } = route.params || {};
     const [layout, setLayout] = useState('grid');
     const [search, setSearch] = useState(searchQuery);
     const [activeQuery, setActiveQuery] = useState(searchQuery);
-    const [sort, setSort] = useState('newest');
+    const [sort, setSort] = useState(savedFilters.sort || 'newest');
+    const [categories, setCategories] = useState([]);
+    const [regions, setRegions] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState(
+        categorySlug ? { name: cat, slug: categorySlug } : null,
+    );
+    const [selectedCity, setSelectedCity] = useState(null);
+    const [categoryFilters, setCategoryFilters] = useState([]);
+    const [filters, setFilters] = useState(() => restoredFilters(savedFilters));
+    const [draftFilters, setDraftFilters] = useState(() => restoredFilters(savedFilters));
+    const [facets, setFacets] = useState({});
+    const [categoryModal, setCategoryModal] = useState(false);
+    const [locationModal, setLocationModal] = useState(false);
+    const [filterModal, setFilterModal] = useState(false);
     const [listings, setListings] = useState([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
+    const [savingSearch, setSavingSearch] = useState(false);
+    const [compareCount, setCompareCount] = useState(0);
+    const [locationMode, setLocationMode] = useState(Boolean(nearby));
+    const [buyerLocation, setBuyerLocation] = useState(null);
+    const [locating, setLocating] = useState(false);
 
-    const loadListings = useCallback(async (refresh = false) => {
-        refresh ? setRefreshing(true) : setLoading(true);
+    useEffect(() => {
+        const refreshCount = () => getComparisonAds().then((items) => setCompareCount(items.length));
+        refreshCount();
+        return navigation.addListener('focus', refreshCount);
+    }, [navigation]);
+
+    useEffect(() => {
+        Promise.all([getCategories(), getRegions()])
+            .then(([categoryData, regionData]) => {
+                setCategories(categoryData);
+                setRegions(regionData);
+                if (savedFilters.city) {
+                    const city = regionData.flatMap((region) => region.cities || []).find((item) => (
+                        String(item.id) === String(savedFilters.city)
+                        || item.slug === savedFilters.city
+                        || item.name === savedFilters.city
+                    ));
+                    if (city) setSelectedCity(city);
+                }
+                if (categorySlug) {
+                    const match = flattenCategories(categoryData).find((item) => item.slug === categorySlug);
+                    if (match) setSelectedCategory(match);
+                }
+            })
+            .catch(() => {});
+    }, [categorySlug]);
+
+    useEffect(() => {
+        if (!selectedCategory?.slug) {
+            setCategoryFilters([]);
+            return;
+        }
+        getCategoryFilters(selectedCategory.slug).then(setCategoryFilters).catch(() => setCategoryFilters([]));
+    }, [selectedCategory?.slug]);
+
+    const requestParams = useMemo(() => ({
+        page_size: locationMode ? 100 : 20,
+        category: selectedCategory?.slug,
+        search: activeQuery,
+        sort,
+        city: selectedCity?.slug || selectedCity?.id,
+        min_price: filters.minPrice,
+        max_price: filters.maxPrice,
+        condition: filters.condition,
+        is_negotiable: filters.negotiable ? true : '',
+        verified_seller: filters.verified ? true : '',
+        posted_within: filters.postedWithin,
+        ...filters.fields,
+    }), [activeQuery, filters, locationMode, selectedCategory?.slug, selectedCity, sort]);
+
+    const loadListings = useCallback(async ({ requestedPage = 1, append = false, refresh = false } = {}) => {
+        if (append) setLoadingMore(true);
+        else if (refresh) setRefreshing(true);
+        else setLoading(true);
         setError('');
         try {
-            const data = await getListings({
-                category: categorySlug,
-                search: activeQuery,
-                sort,
-            });
-            setListings(data);
+            const data = await getListingsPage({ ...requestParams, page: requestedPage });
+            const nextResults = locationMode && buyerLocation
+                ? await addDistancesToListings(data.results, buyerLocation)
+                : data.results;
+            setListings((current) => append ? [...current, ...nextResults] : nextResults);
+            setTotal(data.count);
+            setPage(requestedPage);
+            setHasMore(!locationMode && Boolean(data.next));
         } catch (requestError) {
             setError(requestError.message);
         } finally {
             setLoading(false);
             setRefreshing(false);
+            setLoadingMore(false);
         }
-    }, [activeQuery, categorySlug, sort]);
+    }, [buyerLocation, locationMode, requestParams]);
+
+    const enableNearby = useCallback(async () => {
+        if (locating) return;
+        setLocating(true);
+        setNotice('');
+        try {
+            const location = await getStoredBuyerLocation() || await requestBuyerLocation();
+            setSelectedCity(null);
+            setBuyerLocation(location);
+            setLocationMode(true);
+        } catch (locationError) {
+            setLocationMode(false);
+            setBuyerLocation(null);
+            setNotice(locationError.message || 'Your location could not be found.');
+        } finally {
+            setLocating(false);
+        }
+    }, [locating]);
+
+    useEffect(() => {
+        if (nearby) enableNearby();
+    }, [nearby]);
+
+    const disableNearby = () => {
+        setLocationMode(false);
+        setBuyerLocation(null);
+    };
 
     useEffect(() => {
         loadListings();
-    }, [loadListings]);
+        getListingFacets(requestParams).then(setFacets).catch(() => setFacets({}));
+    }, [loadListings, requestParams]);
 
-    const submitSearch = () => setActiveQuery(search.trim());
+    const draftFacetParams = useMemo(() => ({
+        category: selectedCategory?.slug,
+        search: activeQuery,
+        city: selectedCity?.slug || selectedCity?.id,
+        min_price: draftFilters.minPrice,
+        max_price: draftFilters.maxPrice,
+        condition: draftFilters.condition,
+        is_negotiable: draftFilters.negotiable ? true : '',
+        verified_seller: draftFilters.verified ? true : '',
+        posted_within: draftFilters.postedWithin,
+        ...draftFilters.fields,
+    }), [activeQuery, draftFilters, selectedCategory?.slug, selectedCity]);
+
+    useEffect(() => {
+        if (!filterModal) return undefined;
+        const timeout = setTimeout(() => {
+            getListingFacets(draftFacetParams).then(setFacets).catch(() => {});
+        }, 350);
+        return () => clearTimeout(timeout);
+    }, [draftFacetParams, filterModal]);
+
+    const categoryGroups = useMemo(() => [
+        { title: 'All categories', items: [{ id: 'all', name: 'All categories', slug: '' }] },
+        ...categories.map((category) => ({
+            title: category.name,
+            items: category.children?.length ? [category, ...category.children] : [category],
+        })),
+    ], [categories]);
+
+    const locationGroups = useMemo(() => [
+        { title: 'Anywhere', items: [{ id: 'all', name: 'All Uganda' }] },
+        ...regions.map((region) => ({ title: region.name, items: region.cities || [] })),
+    ], [regions]);
+
+    const activeFilterCount = useMemo(() => [
+        filters.minPrice || filters.maxPrice,
+        filters.condition,
+        filters.negotiable,
+        filters.verified,
+        filters.postedWithin,
+        ...Object.values(filters.fields),
+    ].filter(Boolean).length, [filters]);
+
+    const submitSearch = async () => {
+        const query = search.trim();
+        setActiveQuery(query);
+        if (!query && !selectedCategory && !selectedCity) return;
+
+        const historyFilters = Object.fromEntries(Object.entries(requestParams).filter(([key, value]) => (
+            !['search', 'category', 'city'].includes(key)
+            && value !== ''
+            && value !== undefined
+            && value !== null
+        )));
+        await recordRecentSearch({
+            query,
+            categorySlug: selectedCategory?.slug,
+            categoryName: selectedCategory?.name,
+            cityId: selectedCity?.id,
+            citySlug: selectedCity?.slug,
+            cityName: selectedCity?.name,
+            filters: historyFilters,
+        });
+    };
+
+    const chooseCategory = (item) => {
+        setSelectedCategory(item.id === 'all' ? null : item);
+        setFilters((current) => ({ ...current, fields: {} }));
+        setNotice('');
+    };
+
+    const openFilters = () => {
+        setDraftFilters({ ...filters, fields: { ...filters.fields } });
+        setFilterModal(true);
+    };
+
+    const updateDraft = (key, value) => setDraftFilters((current) => ({ ...current, [key]: value }));
+    const updateDraftField = (key, value) => setDraftFilters((current) => ({
+        ...current,
+        fields: { ...current.fields, [key]: value },
+    }));
+
+    const saveSearch = async () => {
+        if (!isAuthenticated) {
+            navigation.navigate('SignIn');
+            return;
+        }
+        setSavingSearch(true);
+        setNotice('');
+        try {
+            const filterPayload = Object.fromEntries(Object.entries(requestParams).filter(([, value]) => value !== '' && value !== undefined && value !== null && value !== 'newest'));
+            delete filterPayload.search;
+            delete filterPayload.sort;
+            const nameParts = [activeQuery || selectedCategory?.name || 'All ads', selectedCity?.name].filter(Boolean);
+            await createSavedSearch(nameParts.join(' · '), activeQuery, filterPayload);
+            setNotice('Search saved. QOT will notify you about new matching ads.');
+        } catch (requestError) {
+            setNotice(requestError.message);
+        } finally {
+            setSavingSearch(false);
+        }
+    };
+
+    const Chip = ({ label, selected, onPress, count }) => (
+        <TouchableOpacity
+            onPress={onPress}
+            style={{
+                minHeight: 40,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: selected ? COLORS.primary : colors.borderColor,
+                backgroundColor: selected ? `${COLORS.primary}12` : colors.card,
+                paddingHorizontal: 13,
+                marginRight: 8,
+                marginBottom: 9,
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}
+        >
+            <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: selected ? COLORS.primary : colors.title }]}>
+                {label}{count !== undefined ? ` (${count})` : ''}
+            </Text>
+        </TouchableOpacity>
+    );
+
+    const renderFilterModal = () => (
+        <Modal visible={filterModal} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setFilterModal(false)}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+                <View style={{ height: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: colors.borderColor }}>
+                    <TouchableOpacity onPress={() => setFilterModal(false)} style={{ height: 42, width: 42, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="x" size={24} color={colors.title} /></TouchableOpacity>
+                    <Text style={[FONTS.h5, { color: colors.title, flex: 1, marginLeft: 5 }]}>Filter ads</Text>
+                    <TouchableOpacity onPress={() => setDraftFilters(emptyFilters())} style={{ padding: 10 }}><Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.danger }]}>Reset</Text></TouchableOpacity>
+                </View>
+                <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[GlobalStyleSheet.container, { paddingTop: 18, paddingBottom: 120 }]}>
+                    <Text style={[FONTS.h6, { color: colors.title, marginBottom: 11 }]}>Price range</Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                        {[['minPrice', 'Minimum price'], ['maxPrice', 'Maximum price']].map(([key, placeholder]) => (
+                            <TextInput key={key} value={draftFilters[key]} onChangeText={(value) => updateDraft(key, value.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder={placeholder} placeholderTextColor={colors.textLight} style={[FONTS.font, { flex: 1, height: 49, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.card, color: colors.title, borderRadius: 11, paddingHorizontal: 12 }]} />
+                        ))}
+                    </View>
+                    {Boolean(facets.price_presets?.length) && (
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 11 }}>
+                            {facets.price_presets.map((preset) => (
+                                <Chip key={preset.label} label={preset.label} count={preset.count} selected={String(draftFilters.minPrice) === String(preset.min_price || '') && String(draftFilters.maxPrice) === String(preset.max_price || '')} onPress={() => setDraftFilters((current) => ({ ...current, minPrice: preset.min_price ? String(preset.min_price) : '', maxPrice: preset.max_price ? String(preset.max_price) : '' }))} />
+                            ))}
+                        </ScrollView>
+                    )}
+
+                    <Text style={[FONTS.h6, { color: colors.title, marginTop: 17, marginBottom: 11 }]}>Condition</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                        {[['new', 'New'], ['used', 'Used']].map(([value, label]) => <Chip key={value} label={label} count={facets.condition_counts?.[value]} selected={draftFilters.condition === value} onPress={() => updateDraft('condition', draftFilters.condition === value ? '' : value)} />)}
+                    </View>
+
+                    <Text style={[FONTS.h6, { color: colors.title, marginTop: 8, marginBottom: 11 }]}>Seller and timing</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                        <Chip label="Negotiable" selected={draftFilters.negotiable} onPress={() => updateDraft('negotiable', !draftFilters.negotiable)} />
+                        <Chip label="Verified sellers" selected={draftFilters.verified} onPress={() => updateDraft('verified', !draftFilters.verified)} />
+                        {[['1', 'Today'], ['7', 'Last 7 days'], ['30', 'Last 30 days']].map(([value, label]) => <Chip key={value} label={label} selected={draftFilters.postedWithin === value} onPress={() => updateDraft('postedWithin', draftFilters.postedWithin === value ? '' : value)} />)}
+                    </View>
+
+                    {categoryFilters.map((filter) => {
+                        const value = String(draftFilters.fields[filter.key] || '');
+                        const facetOptions = facets.filters?.[filter.key]?.options || filter.options || [];
+                        return (
+                            <View key={filter.id} style={{ marginTop: 13 }}>
+                                <Text style={[FONTS.h6, { color: colors.title, marginBottom: 11 }]}>{filter.name}</Text>
+                                {filter.filter_type === 'boolean' ? (
+                                    <View style={{ flexDirection: 'row' }}>
+                                        {[['true', 'Yes'], ['false', 'No']].map(([optionValue, label]) => <Chip key={optionValue} label={label} selected={value === optionValue} onPress={() => updateDraftField(filter.key, value === optionValue ? '' : optionValue)} />)}
+                                    </View>
+                                ) : facetOptions.length ? (
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        {facetOptions.map((option) => <Chip key={option.value} label={option.label} count={option.count} selected={value === String(option.value)} onPress={() => updateDraftField(filter.key, value === String(option.value) ? '' : String(option.value))} />)}
+                                    </ScrollView>
+                                ) : ['number', 'range'].includes(filter.filter_type) ? (
+                                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                                        {[`${filter.key}_min`, `${filter.key}_max`].map((fieldKey, index) => (
+                                            <TextInput key={fieldKey} value={String(draftFilters.fields[fieldKey] || '')} onChangeText={(text) => updateDraftField(fieldKey, text.replace(/[^0-9.]/g, ''))} keyboardType="numeric" placeholder={index === 0 ? 'Minimum' : 'Maximum'} placeholderTextColor={colors.textLight} style={[FONTS.font, { flex: 1, height: 49, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.card, color: colors.title, borderRadius: 11, paddingHorizontal: 12 }]} />
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <TextInput value={value} onChangeText={(text) => updateDraftField(filter.key, text)} placeholder={`Enter ${filter.name.toLowerCase()}`} placeholderTextColor={colors.textLight} style={[FONTS.font, { height: 49, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.card, color: colors.title, borderRadius: 11, paddingHorizontal: 12 }]} />
+                                )}
+                            </View>
+                        );
+                    })}
+                </ScrollView>
+                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 15, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor }}>
+                    <TouchableOpacity onPress={() => { setFilters(draftFilters); setFilterModal(false); }} style={{ height: 52, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' }}><Text style={[FONTS.font, FONTS.fontTitle, { color: COLORS.white }]}>Show {Number(facets.total_count ?? total).toLocaleString()} ads</Text></TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        </Modal>
+    );
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <View style={[GlobalStyleSheet.container, { paddingBottom: 5 }] }>
+            <View style={[GlobalStyleSheet.container, { paddingBottom: 5 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        style={{ height: 48, width: 38, justifyContent: 'center' }}
-                    >
-                        <FeatherIcon name="chevron-left" color={colors.title} size={25} />
-                    </TouchableOpacity>
-                    <View style={{ flex: 1 }}>
-                        <SearchBar
-                            value={search}
-                            onChangeText={setSearch}
-                            onSubmitEditing={submitSearch}
-                            placeholder={`Search ${cat}`}
-                        />
-                    </View>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ height: 48, width: 38, justifyContent: 'center' }}><FeatherIcon name="chevron-left" color={colors.title} size={25} /></TouchableOpacity>
+                    <View style={{ flex: 1 }}><SearchBar value={search} onChangeText={setSearch} onSubmitEditing={submitSearch} placeholder="What are you looking for?" /></View>
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 13 }}>
                     <View style={{ flex: 1 }}>
-                        <Text numberOfLines={1} style={[FONTS.h6, { color: colors.title }] }>{cat}</Text>
-                        <Text style={[FONTS.fontXs, { color: colors.text }] }>
-                            {loading ? 'Loading...' : `${listings.length} ${listings.length === 1 ? 'ad' : 'ads'}`}
-                        </Text>
+                        <Text numberOfLines={1} style={[FONTS.h6, { color: colors.title }]}>{locationMode ? 'Ads near you' : selectedCategory?.name || (activeQuery ? `Results for “${activeQuery}”` : selectedCity?.name ? `Ads in ${selectedCity.name}` : 'Browse all ads')}</Text>
+                        <Text style={[FONTS.fontXs, { color: colors.text }]}>{locating ? 'Finding your location...' : loading ? 'Finding ads...' : locationMode ? `${total.toLocaleString()} ads · nearest first` : `${total.toLocaleString()} ${total === 1 ? 'ad' : 'ads'} found`}</Text>
                     </View>
-                    <TouchableOpacity onPress={() => setLayout('grid')} style={{ padding: 8 }}>
-                        <Image
-                            style={{ height: 22, width: 22, resizeMode: 'contain', tintColor: layout === 'grid' ? COLORS.primary : '#BEB9CD' }}
-                            source={IMAGES.grid}
-                        />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setLayout('list')} style={{ padding: 8 }}>
-                        <Image
-                            style={{ height: 22, width: 22, resizeMode: 'contain', tintColor: layout === 'list' ? COLORS.primary : '#BEB9CD' }}
-                            source={IMAGES.grid2}
-                        />
-                    </TouchableOpacity>
+                    <TouchableOpacity disabled={savingSearch} onPress={saveSearch} style={{ height: 39, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' }}>{savingSearch ? <ActivityIndicator size="small" color={COLORS.primary} /> : <FeatherIcon name="bookmark" size={20} color={COLORS.primary} />}</TouchableOpacity>
+                    <TouchableOpacity onPress={() => setLayout('grid')} style={{ padding: 8 }}><Image style={{ height: 21, width: 21, resizeMode: 'contain', tintColor: layout === 'grid' ? COLORS.primary : '#BEB9CD' }} source={IMAGES.grid} /></TouchableOpacity>
+                    <TouchableOpacity onPress={() => setLayout('list')} style={{ padding: 8 }}><Image style={{ height: 21, width: 21, resizeMode: 'contain', tintColor: layout === 'list' ? COLORS.primary : '#BEB9CD' }} source={IMAGES.grid2} /></TouchableOpacity>
                 </View>
 
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingTop: 12, paddingBottom: 4 }}
-                >
-                    {sortOptions.map((option) => (
-                        <TouchableOpacity
-                            key={option.value}
-                            onPress={() => setSort(option.value)}
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                borderWidth: 1,
-                                borderColor: sort === option.value ? COLORS.primary : colors.borderColor,
-                                backgroundColor: sort === option.value ? `${COLORS.primary}12` : colors.card,
-                                borderRadius: SIZES.radius,
-                                paddingHorizontal: 12,
-                                paddingVertical: 7,
-                                marginRight: 8,
-                            }}
-                        >
-                            {option.value === 'newest' && (
-                                <Octicons size={14} color={sort === option.value ? COLORS.primary : colors.text} style={{ marginRight: 6 }} name="sort-desc" />
-                            )}
-                            <Text style={[FONTS.fontSm, { color: sort === option.value ? COLORS.primary : colors.title }] }>
-                                {option.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingTop: 12, paddingBottom: 5 }}>
+                    <Chip label={locating ? 'Locating…' : 'Near me'} selected={locationMode} onPress={locationMode ? disableNearby : enableNearby} />
+                    <Chip label={selectedCategory?.name || 'Category'} selected={Boolean(selectedCategory)} onPress={() => setCategoryModal(true)} />
+                    <Chip label={selectedCity?.name || 'All Uganda'} selected={Boolean(selectedCity)} onPress={() => setLocationModal(true)} />
+                    <Chip label={`Filters${activeFilterCount ? ` · ${activeFilterCount}` : ''}`} selected={Boolean(activeFilterCount)} onPress={openFilters} />
+                    {!locationMode && sortOptions.map((option) => <Chip key={option.value} label={option.label} selected={sort === option.value} onPress={() => setSort(option.value)} />)}
                 </ScrollView>
+
+                {Boolean(notice) && (
+                    <Pressable onPress={() => setNotice('')} style={{ borderRadius: 10, padding: 10, marginTop: 6, backgroundColor: notice.startsWith('Search saved') ? '#E8F7EE' : '#FDECEC', flexDirection: 'row', alignItems: 'center' }}><FeatherIcon name={notice.startsWith('Search saved') ? 'check-circle' : 'alert-circle'} size={16} color={notice.startsWith('Search saved') ? '#15803D' : COLORS.danger} /><Text style={[FONTS.fontXs, { color: notice.startsWith('Search saved') ? '#15803D' : COLORS.danger, flex: 1, marginLeft: 7 }]}>{notice}</Text></Pressable>
+                )}
             </View>
 
             {loading ? (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                </View>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator size="large" color={COLORS.primary} /></View>
             ) : (
                 <FlatList
                     key={layout}
@@ -146,40 +451,32 @@ const Items = ({ route, navigation }) => {
                     numColumns={layout === 'grid' ? 2 : 1}
                     keyExtractor={(item) => String(item.id)}
                     showsVerticalScrollIndicator={false}
-                    refreshControl={(
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={() => loadListings(true)}
-                            tintColor={COLORS.primary}
-                            colors={[COLORS.primary]}
-                        />
-                    )}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadListings({ refresh: true })} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
+                    onEndReached={() => hasMore && !loadingMore && loadListings({ requestedPage: page + 1, append: true })}
+                    onEndReachedThreshold={0.35}
                     contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 90, flexGrow: 1 }}
-                    ListHeaderComponent={error ? (
-                        <TouchableOpacity
-                            onPress={() => loadListings()}
-                            style={{ backgroundColor: '#FDECEC', borderRadius: 10, padding: 12, margin: 5 }}
-                        >
-                            <Text style={[FONTS.fontSm, { color: COLORS.danger, textAlign: 'center' }] }>
-                                {error} Tap to retry.
-                            </Text>
-                        </TouchableOpacity>
-                    ) : null}
-                    ListEmptyComponent={!error ? (
-                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 35 }}>
-                            <FeatherIcon name="search" size={32} color={colors.textLight} />
-                            <Text style={[FONTS.font, { color: colors.text, textAlign: 'center', marginTop: 12 }] }>
-                                No matching ads were found.
-                            </Text>
-                        </View>
-                    ) : null}
-                    renderItem={({ item }) => (
-                        <View style={layout === 'grid' ? { width: '50%', padding: 5 } : { width: '100%', padding: 5 }}>
-                            <CardStyle1 list={layout === 'list'} item={item} />
-                        </View>
-                    )}
+                    ListHeaderComponent={error ? <TouchableOpacity onPress={() => loadListings()} style={{ backgroundColor: '#FDECEC', borderRadius: 10, padding: 12, margin: 5 }}><Text style={[FONTS.fontSm, { color: COLORS.danger, textAlign: 'center' }]}>{error} Tap to retry.</Text></TouchableOpacity> : null}
+                    ListEmptyComponent={!error ? <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 35 }}><FeatherIcon name="search" size={32} color={colors.textLight} /><Text style={[FONTS.font, { color: colors.text, textAlign: 'center', marginTop: 12 }]}>No matching ads were found. Try removing a filter or searching another area.</Text></View> : null}
+                    ListFooterComponent={loadingMore ? <ActivityIndicator color={COLORS.primary} style={{ paddingVertical: 20 }} /> : null}
+                    renderItem={({ item }) => <View style={layout === 'grid' ? { width: '50%', padding: 5 } : { width: '100%', padding: 5 }}><CardStyle1 list={layout === 'list'} item={item} showCompare onCompareChange={(count) => setCompareCount(count)} onCompareError={setNotice} /></View>}
                 />
             )}
+
+            {compareCount > 0 && (
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('CompareAds')}
+                    activeOpacity={0.9}
+                    style={{ position: 'absolute', left: 55, right: 55, bottom: 16, minHeight: 49, borderRadius: 16, backgroundColor: COLORS.secondary, shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+                >
+                    <FeatherIcon name="columns" size={18} color={COLORS.white} />
+                    <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.white, marginLeft: 8 }]}>Compare ads · {compareCount}/3</Text>
+                    <FeatherIcon name="chevron-right" size={18} color={COLORS.white} style={{ marginLeft: 7 }} />
+                </TouchableOpacity>
+            )}
+
+            <MarketplaceSelectionModal visible={categoryModal} title="Choose a category" groups={categoryGroups} selectedId={selectedCategory?.id || 'all'} onSelect={chooseCategory} onClose={() => setCategoryModal(false)} searchPlaceholder="Search categories" />
+            <MarketplaceSelectionModal visible={locationModal} title="Choose a location" groups={locationGroups} selectedId={selectedCity?.id || 'all'} onSelect={(item) => { disableNearby(); setSelectedCity(item.id === 'all' ? null : item); }} onClose={() => setLocationModal(false)} searchPlaceholder="Search all cities and districts" />
+            {renderFilterModal()}
         </SafeAreaView>
     );
 };
