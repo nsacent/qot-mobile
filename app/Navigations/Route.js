@@ -6,7 +6,6 @@ import {
   DefaultTheme as NavigationDefaultTheme,
   DarkTheme as NavigationDarkTheme
 } from '@react-navigation/native';
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import StackNavigator from "./StackNavigator";
 import themeContext from "../constants/themeContext";
 import { COLORS } from "../constants/theme";
@@ -22,7 +21,6 @@ const linking = {
       SingleChat: 'messages/:threadId',
       NotificationsCenter: 'notifications',
       ListingAnalytics: 'account/analytics/:listingId',
-      CompareAds: 'compare',
     },
   },
   async getInitialURL() {
@@ -92,13 +90,11 @@ const Routes = () => {
   const theme = isDarkTheme ? CustomDarkTheme : CustomDefaultTheme; 
 
   return (
-    <SafeAreaProvider>
-      <themeContext.Provider value={authContext}>
-        <NavigationContainer theme={theme} linking={linking}>
-          <StackNavigator/>
-        </NavigationContainer>
-      </themeContext.Provider>
-    </SafeAreaProvider>
+    <themeContext.Provider value={authContext}>
+      <NavigationContainer theme={theme} linking={linking}>
+        <StackNavigator/>
+      </NavigationContainer>
+    </themeContext.Provider>
   );
   
 };

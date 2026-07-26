@@ -13,6 +13,7 @@ import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
 import FacebookSignInButton from '../../components/FacebookSignInButton';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -191,9 +192,10 @@ const SignUp = ({ navigation }) => {
                         <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
                     </View>
 
+                    <GoogleSignInButton navigation={navigation} mode="sign-up" />
                     <FacebookSignInButton navigation={navigation} mode="sign-up" />
                     <Text style={[FONTS.fontXs, { color: colors.text, textAlign: 'center', lineHeight: 17, marginTop: 10 }] }>
-                        By continuing with Facebook, you agree to QOT Uganda's Terms and Privacy Policy.
+                        By continuing with Google or Facebook, you agree to QOT Uganda's Terms and Privacy Policy.
                     </Text>
 
                     <View style={{ flexDirection: 'row', marginTop: 18, marginBottom: 24, justifyContent: 'center' }}>

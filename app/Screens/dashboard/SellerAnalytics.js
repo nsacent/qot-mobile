@@ -71,8 +71,8 @@ const SellerAnalytics = ({ navigation }) => {
         setError('');
         try {
             const [analyticsData, sellerListings] = await Promise.all([
-                getSellerAnalytics(),
-                getMyListings(),
+                getSellerAnalytics({ force: refresh }),
+                getMyListings({ force: refresh }),
             ]);
             setSummary(analyticsData);
             setListings(sellerListings);

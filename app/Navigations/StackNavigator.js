@@ -1,6 +1,6 @@
 import React from "react";
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
-import { ActivityIndicator, Platform, StatusBar, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { COLORS } from "../constants/theme";
@@ -73,7 +73,6 @@ import SellerReviews from "../Screens/account/SellerReviews";
 import MyReviews from "../Screens/account/MyReviews";
 import Sellers from "../Screens/sellers/Sellers";
 import FollowingFeed from "../Screens/account/FollowingFeed";
-import CompareAds from "../Screens/account/CompareAds";
 
 
 const StackComponent = createStackNavigator();
@@ -93,9 +92,6 @@ const StackNavigator = () => {
 
   return (
     <View style={{width:'100%', flex: 1 }}>
-      {Platform.OS === 'web' || Platform.OS === 'android' &&
-        <StatusBar backgroundColor={theme.colors.card} barStyle={theme.dark ? "dark-content" : "dark-content"} />
-      }
       <StackComponent.Navigator
         initialRouteName={isAuthenticated ? "DrawerNavigation" : "SignIn"}
         detachInactiveScreens={true}
@@ -152,7 +148,6 @@ const StackNavigator = () => {
         <StackComponent.Screen name={"MyReviews"} component={MyReviews} />
         <StackComponent.Screen name={"Sellers"} component={Sellers} />
         <StackComponent.Screen name={"FollowingFeed"} component={FollowingFeed} />
-        <StackComponent.Screen name={"CompareAds"} component={CompareAds} />
         <StackComponent.Screen name={"Location"} component={Location} />
         <StackComponent.Screen name={"Uploadphoto"} component={Uploadphoto} />
         <StackComponent.Screen name={"Setprice"} component={Setprice} />

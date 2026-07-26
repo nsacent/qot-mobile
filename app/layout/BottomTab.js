@@ -3,6 +3,7 @@ import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { COLORS, FONTS } from '../constants/theme';
 import { useTheme } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlobalStyleSheet } from '../constants/StyleSheet';
 import { getChatThreads } from '../api/chats';
 
@@ -12,6 +13,7 @@ const BottomTab = ({ state, descriptors, navigation }) => {
 
     const theme = useTheme();
     const { colors } = theme;
+    const insets = useSafeAreaInsets();
     const [unreadMessages, setUnreadMessages] = useState(0);
 
     useEffect(() => {
@@ -47,6 +49,7 @@ const BottomTab = ({ state, descriptors, navigation }) => {
                 left: 0,
                 bottom: 0,
                 right: 0,
+                paddingBottom: Math.max(insets.bottom, 4),
             }, Platform.OS === 'ios' && {
                 backgroundColor: colors.card,
             }]}

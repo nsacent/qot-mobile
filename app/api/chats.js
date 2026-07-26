@@ -1,5 +1,11 @@
 import { apiRequest, API_BASE_URL } from './client';
 import { getSession } from './session';
+import {
+    CACHE_TIMES,
+    cachedQuery,
+    invalidateChatCaches,
+    sessionScope,
+} from '../cache/queryCache';
 
 const collection = (data) => (
     Array.isArray(data) ? data : (data?.results || data?.messages || data?.threads || [])
@@ -18,41 +24,56 @@ const queryString = (params = {}) => {
 };
 
 export const getChatThreads = async ({ folder = 'all', search = '' } = {}) => {
-    const data = await apiRequest(`/chats/threads/${queryString({
-        filter: folder,
-        search: search.trim(),
-        page_size: 100,
-    })}`, { authenticated: true });
+    return cachedQuery({
+        key: ['chat', 'threads', sessionScope(), folder, search.trim()],
+        staleTime: CACHE_TIMES.chat,
+        scope: 'session',
+        queryFn: async () => {
+            const data = await apiRequest(`/chats/threads/${queryString({
+                filter: folder,
+                search: search.trim(),
+                page_size: 100,
+            })}`, { authenticated: true });
 
-    return {
-        threads: collection(data),
-        tabs: data?.tabs || {},
-    };
+            return {
+                threads: collection(data),
+                tabs: data?.tabs || {},
+            };
+        },
+    });
 };
 
-export const getChatThread = (threadId) => (
-    apiRequest(`/chats/threads/${threadId}/`, { authenticated: true })
-);
+export const getChatThread = (threadId) => cachedQuery({
+    key: ['chat', 'thread', sessionScope(), threadId],
+    queryFn: () => apiRequest(`/chats/threads/${threadId}/`, { authenticated: true }),
+    staleTime: CACHE_TIMES.chat,
+    scope: 'session',
+});
 
-export const createChatThread = (listingId, initialMessage = 'Hi, is this ad still available?') => (
-    apiRequest('/chats/threads/', {
+export const createChatThread = async (listingId, initialMessage = 'Hi, is this ad still available?') => {
+    const result = await apiRequest('/chats/threads/', {
         method: 'POST',
         authenticated: true,
         body: {
             listing_id: listingId,
             ...(initialMessage?.trim() ? { initial_message: initialMessage.trim() } : {}),
         },
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const getChatMessages = async (threadId) => (
-    collection(await apiRequest(`/chats/threads/${threadId}/messages/?page_size=100`, {
+export const getChatMessages = (threadId) => cachedQuery({
+    key: ['chat', 'messages', sessionScope(), threadId],
+    queryFn: async () => collection(await apiRequest(`/chats/threads/${threadId}/messages/?page_size=100`, {
         authenticated: true,
-    }))
-);
+    })),
+    staleTime: CACHE_TIMES.chat,
+    scope: 'session',
+});
 
-export const sendChatMessage = (threadId, body, replyToId = null) => (
-    apiRequest(`/chats/threads/${threadId}/messages/`, {
+export const sendChatMessage = async (threadId, body, replyToId = null) => {
+    const result = await apiRequest(`/chats/threads/${threadId}/messages/`, {
         method: 'POST',
         authenticated: true,
         body: {
@@ -60,11 +81,13 @@ export const sendChatMessage = (threadId, body, replyToId = null) => (
             body: body.trim(),
             ...(replyToId ? { reply_to: replyToId } : {}),
         },
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const sendChatOffer = (threadId, amount, note = '') => (
-    apiRequest(`/chats/threads/${threadId}/messages/`, {
+export const sendChatOffer = async (threadId, amount, note = '') => {
+    const result = await apiRequest(`/chats/threads/${threadId}/messages/`, {
         method: 'POST',
         authenticated: true,
         body: {
@@ -72,18 +95,22 @@ export const sendChatOffer = (threadId, amount, note = '') => (
             offer_amount: amount,
             ...(note.trim() ? { body: note.trim() } : {}),
         },
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const updateChatOffer = (threadId, messageId, action) => (
-    apiRequest(`/chats/threads/${threadId}/messages/${messageId}/offer/`, {
+export const updateChatOffer = async (threadId, messageId, action) => {
+    const result = await apiRequest(`/chats/threads/${threadId}/messages/${messageId}/offer/`, {
         method: 'POST',
         authenticated: true,
         body: { action },
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const sendChatAttachments = (threadId, assets, message = '', replyToId = null) => {
+export const sendChatAttachments = async (threadId, assets, message = '', replyToId = null) => {
     const formData = new FormData();
     formData.append('message', message.trim());
     if (replyToId) formData.append('reply_to', String(replyToId));
@@ -96,65 +123,81 @@ export const sendChatAttachments = (threadId, assets, message = '', replyToId = 
         });
     });
 
-    return apiRequest(`/chats/threads/${threadId}/attachments/`, {
+    const result = await apiRequest(`/chats/threads/${threadId}/attachments/`, {
         method: 'POST',
         authenticated: true,
         body: formData,
     });
+    await invalidateChatCaches();
+    return result;
 };
 
-export const deleteChatMessage = (threadId, messageId) => (
-    apiRequest(`/chats/threads/${threadId}/messages/${messageId}/`, {
+export const deleteChatMessage = async (threadId, messageId) => {
+    const result = await apiRequest(`/chats/threads/${threadId}/messages/${messageId}/`, {
         method: 'DELETE',
         authenticated: true,
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const deleteChatThread = (threadId) => (
-    apiRequest(`/chats/threads/${threadId}/`, {
+export const deleteChatThread = async (threadId) => {
+    const result = await apiRequest(`/chats/threads/${threadId}/`, {
         method: 'DELETE',
         authenticated: true,
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const blockChatUser = (threadId, reason = '') => (
-    apiRequest(`/chats/threads/${threadId}/block/`, {
+export const blockChatUser = async (threadId, reason = '') => {
+    const result = await apiRequest(`/chats/threads/${threadId}/block/`, {
         method: 'POST',
         authenticated: true,
         body: reason ? { reason } : {},
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const unblockChatUser = (threadId) => (
-    apiRequest(`/chats/threads/${threadId}/unblock/`, {
+export const unblockChatUser = async (threadId) => {
+    const result = await apiRequest(`/chats/threads/${threadId}/unblock/`, {
         method: 'POST',
         authenticated: true,
         body: {},
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const markChatRead = (threadId) => (
-    apiRequest(`/chats/threads/${threadId}/mark-read/`, {
+export const markChatRead = async (threadId) => {
+    const result = await apiRequest(`/chats/threads/${threadId}/mark-read/`, {
         method: 'POST',
         authenticated: true,
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const updateChatState = (threadId, changes) => (
-    apiRequest(`/chats/threads/${threadId}/state/`, {
+export const updateChatState = async (threadId, changes) => {
+    const result = await apiRequest(`/chats/threads/${threadId}/state/`, {
         method: 'PATCH',
         authenticated: true,
         body: changes,
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
-export const reportChat = (threadId, reason = 'spam', description = '') => (
-    apiRequest(`/chats/threads/${threadId}/report/`, {
+export const reportChat = async (threadId, reason = 'spam', description = '') => {
+    const result = await apiRequest(`/chats/threads/${threadId}/report/`, {
         method: 'POST',
         authenticated: true,
         body: { reason, description },
-    })
-);
+    });
+    await invalidateChatCaches();
+    return result;
+};
 
 export const getChatSocketTicket = () => (
     apiRequest('/chats/socket-ticket/', { authenticated: true })

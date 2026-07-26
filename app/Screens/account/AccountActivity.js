@@ -138,10 +138,10 @@ const AccountActivity = ({ navigation }) => {
 
         const recent = await getRecentlyViewed();
         const results = await Promise.allSettled([
-            getNotifications(),
-            getMyListings(),
-            getFavorites(),
-            getMyReviews(),
+            getNotifications({ force: refresh }),
+            getMyListings({ force: refresh }),
+            getFavorites({ force: refresh }),
+            getMyReviews({ force: refresh }),
         ]);
         const failed = results.filter((result) => result.status === 'rejected');
 

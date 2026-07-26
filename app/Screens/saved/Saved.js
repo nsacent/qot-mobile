@@ -59,7 +59,10 @@ const Saved = ({ navigation, route }) => {
         refresh ? setRefreshing(true) : setLoading(true);
         setError('');
         try {
-            const [ads, searches] = await Promise.all([getFavorites(), getSavedSearches()]);
+            const [ads, searches] = await Promise.all([
+                getFavorites({ force: refresh }),
+                getSavedSearches({ force: refresh }),
+            ]);
             setFavorites(ads);
             setSavedSearches(searches);
         } catch (requestError) {

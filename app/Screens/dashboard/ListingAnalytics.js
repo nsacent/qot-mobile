@@ -85,8 +85,8 @@ const ListingAnalytics = ({ route, navigation }) => {
         setError('');
         try {
             const [listingData, analyticsData] = await Promise.all([
-                getOwnedListing(listingId),
-                getListingAnalytics(listingId),
+                getOwnedListing(listingId, { force: refresh }),
+                getListingAnalytics(listingId, { force: refresh }),
             ]);
             setListing(listingData);
             setAnalytics(analyticsData);

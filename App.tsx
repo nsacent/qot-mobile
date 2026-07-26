@@ -1,11 +1,13 @@
 import 'react-native-gesture-handler';
-import React, { Component } from 'react';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
+import { KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import Routes from './app/Navigations/Route';
 import { AuthProvider } from './app/context/AuthContext';
 import { NotificationProvider } from './app/context/NotificationContext';
 import ConnectionBanner from './app/components/ConnectionBanner';
+import { QueryCacheProvider } from './app/cache/queryCache';
 
 const App = () =>{
 
@@ -26,18 +28,21 @@ const App = () =>{
 
     return (
         <SafeAreaProvider>
-          <SafeAreaView
-            style={{
-                flex: 1,
-              }}
-            >
+          <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'android' ? 'height' : undefined}
+            keyboardVerticalOffset={0}
+          >
+            <QueryCacheProvider>
               <AuthProvider>
                 <NotificationProvider>
                   <Routes/>
                   <ConnectionBanner/>
                 </NotificationProvider>
               </AuthProvider>
-          </SafeAreaView>
+            </QueryCacheProvider>
+          </KeyboardAvoidingView>
         </SafeAreaProvider>
     );
 };

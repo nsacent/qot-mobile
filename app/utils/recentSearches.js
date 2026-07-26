@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'qot.recentSearches';
+const STORAGE_KEY = 'qot:v1:recent-searches';
+const LEGACY_STORAGE_KEY = 'qot.recentSearches';
 const MAX_SEARCHES = 12;
 
 const cleanText = (value) => String(value || '').trim();
@@ -25,8 +26,13 @@ const normaliseSearch = (search = {}) => ({
 
 export const getRecentSearches = async () => {
     try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await AsyncStorage.getItem(STORAGE_KEY)
+            || await AsyncStorage.getItem(LEGACY_STORAGE_KEY);
         const searches = raw ? JSON.parse(raw) : [];
+        if (raw && !await AsyncStorage.getItem(STORAGE_KEY)) {
+            await AsyncStorage.setItem(STORAGE_KEY, raw);
+            await AsyncStorage.removeItem(LEGACY_STORAGE_KEY);
+        }
         return Array.isArray(searches)
             ? searches.filter((item) => item && (item.query || item.categorySlug || item.cityId || item.citySlug))
             : [];
@@ -55,7 +61,7 @@ export const removeRecentSearch = async (searchId) => {
 };
 
 export const clearRecentSearches = async () => {
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await AsyncStorage.multiRemove([STORAGE_KEY, LEGACY_STORAGE_KEY]);
 };
 
 export const recentSearchLabel = (search) => (

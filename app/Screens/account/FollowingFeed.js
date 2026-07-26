@@ -39,12 +39,12 @@ const FollowingFeed = ({ navigation }) => {
         refresh ? setRefreshing(true) : setLoading(true);
         setError('');
         try {
-            const data = await getFollowingFeed(user.id);
+            const data = await getFollowingFeed(user.id, { force: refresh });
             setSellers(data.sellers);
             setListings(data.listings);
             setPartial(Boolean(data.partial));
         } catch (requestError) {
-            setError(requestError.message || 'Your following feed could not be loaded.');
+            setError(requestError.message || 'Your For You feed could not be loaded.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -84,8 +84,8 @@ const FollowingFeed = ({ navigation }) => {
                     <FeatherIcon name="user-check" size={20} color={COLORS.white} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 11 }}>
-                    <Text style={[FONTS.h6, { color: colors.title }]}>Fresh from your sellers</Text>
-                    <Text style={[FONTS.fontXs, { color: colors.text, lineHeight: 17, marginTop: 3 }]}>The newest active ads from every seller you follow.</Text>
+                    <Text style={[FONTS.h6, { color: colors.title }]}>Picked for you</Text>
+                    <Text style={[FONTS.fontXs, { color: colors.text, lineHeight: 17, marginTop: 3 }]}>Fresh ads from sellers you follow and trust.</Text>
                 </View>
             </View>
 
@@ -116,7 +116,7 @@ const FollowingFeed = ({ navigation }) => {
     if (loading) {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-                <Header title="Following feed" leftIcon="back" titleLeft />
+                <Header title="For You" leftIcon="back" titleLeft />
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
                     <Text style={[FONTS.fontSm, { color: colors.text, marginTop: 11 }]}>Gathering new ads…</Text>
@@ -127,7 +127,7 @@ const FollowingFeed = ({ navigation }) => {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <Header title="Following feed" leftIcon="back" titleLeft />
+            <Header title="For You" leftIcon="back" titleLeft />
             <FlatList
                 data={listings}
                 keyExtractor={(item) => String(item.id)}
@@ -141,7 +141,7 @@ const FollowingFeed = ({ navigation }) => {
                             <FeatherIcon name={error ? 'wifi-off' : sellers.length ? 'inbox' : 'users'} size={28} color={COLORS.primary} />
                         </View>
                         <Text style={[FONTS.h6, { color: colors.title, textAlign: 'center', marginTop: 15 }]}>{!isAuthenticated ? 'Sign in to see your feed' : error ? 'Feed unavailable' : sellers.length ? 'No new seller ads' : 'Follow sellers to build your feed'}</Text>
-                        <Text style={[FONTS.fontSm, { color: colors.text, lineHeight: 20, textAlign: 'center', marginTop: 6 }]}>{!isAuthenticated ? 'Your following feed is linked to your QOT account.' : error || (sellers.length ? 'The sellers you follow have no active ads right now. Pull down to check again.' : 'Follow sellers you trust and their latest active ads will appear here automatically.')}</Text>
+                        <Text style={[FONTS.fontSm, { color: colors.text, lineHeight: 20, textAlign: 'center', marginTop: 6 }]}>{!isAuthenticated ? 'Your For You feed is linked to your QOT account.' : error || (sellers.length ? 'The sellers you follow have no active ads right now. Pull down to check again.' : 'Follow sellers you trust and their latest active ads will appear here automatically.')}</Text>
                         <TouchableOpacity onPress={() => !isAuthenticated ? navigation.navigate('SignIn') : error ? loadFeed() : navigation.navigate('Sellers')} style={{ minHeight: 44, borderRadius: 13, backgroundColor: COLORS.primary, paddingHorizontal: 18, marginTop: 18, flexDirection: 'row', alignItems: 'center' }}>
                             <FeatherIcon name={!isAuthenticated ? 'log-in' : error ? 'refresh-cw' : 'search'} size={15} color={COLORS.white} />
                             <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.white, marginLeft: 7 }]}>{!isAuthenticated ? 'Sign in' : error ? 'Try again' : 'Find sellers'}</Text>

@@ -29,6 +29,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
       "package": "ug.qot.mobile",
       "intentFilters": [
         {
@@ -61,8 +62,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "androidStatusBar": {
+      "translucent": true,
+      "backgroundColor": "#00000000",
+      "barStyle": "dark-content"
+    },
     "extra": {
       "facebookAppId": "2278313346334664",
+      "googleWebClientId": "469848009032-cp7lad868jnfbjcn4qjgifumnqvm99m7.apps.googleusercontent.com",
       "eas": {
         "projectId": "fec4bdbe-aba0-4c0a-8781-d0c64b6ab462"
       }

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Alert,
     FlatList,
-    Image,
     RefreshControl,
     SafeAreaView,
     Text,
@@ -21,6 +20,7 @@ import {
     getRecentlyViewed,
     removeRecentlyViewed,
 } from '../../utils/recentlyViewed';
+import CachedImage from '../../components/CachedImage';
 
 const locationFor = (item) => {
     const city = item?.city_name || 'Uganda';
@@ -149,14 +149,14 @@ const RecentlyViewed = ({ navigation }) => {
             >
                 <View style={{ width: 148, height: 124, backgroundColor: colors.borderColor, alignItems: 'center', justifyContent: 'center' }}>
                     {item.primary_image ? (
-                        <Image source={{ uri: item.primary_image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                        <CachedImage source={{ uri: item.primary_image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" cacheVersion={item.updated_at} recyclingKey={`recent-${item.id}-${item.primary_image}`} />
                     ) : (
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                             <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.textLight }]}>QOT</Text>
                         </View>
                     )}
                     {item.is_featured && (
-                        <View style={{ position: 'absolute', left: 7, top: 7, borderRadius: 5, backgroundColor: '#FF5A1F', paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <View style={{ position: 'absolute', left: 7, top: 7, borderRadius: 5, backgroundColor: COLORS.primary, paddingHorizontal: 6, paddingVertical: 3 }}>
                             <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.white, fontSize: 7 }]}>FEATURED</Text>
                         </View>
                     )}

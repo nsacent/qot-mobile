@@ -67,8 +67,8 @@ const SellerReviews = ({ navigation, route }) => {
         setError('');
         try {
             const [reviewData, summaryData] = await Promise.all([
-                getSellerReviews(sellerId),
-                getSellerReviewSummary(sellerId),
+                getSellerReviews(sellerId, { force: refresh }),
+                getSellerReviewSummary(sellerId, { force: refresh }),
             ]);
             setReviews(reviewData);
             setSummary(summaryData);

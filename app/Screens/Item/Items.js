@@ -30,7 +30,6 @@ import {
 } from '../../api/marketplace';
 import { useAuth } from '../../context/AuthContext';
 import { recordRecentSearch } from '../../utils/recentSearches';
-import { getComparisonAds } from '../../utils/compareAds';
 import {
     addDistancesToListings,
     getStoredBuyerLocation,
@@ -107,16 +106,9 @@ const Items = ({ route, navigation }) => {
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
     const [savingSearch, setSavingSearch] = useState(false);
-    const [compareCount, setCompareCount] = useState(0);
     const [locationMode, setLocationMode] = useState(Boolean(nearby));
     const [buyerLocation, setBuyerLocation] = useState(null);
     const [locating, setLocating] = useState(false);
-
-    useEffect(() => {
-        const refreshCount = () => getComparisonAds().then((items) => setCompareCount(items.length));
-        refreshCount();
-        return navigation.addListener('focus', refreshCount);
-    }, [navigation]);
 
     useEffect(() => {
         Promise.all([getCategories(), getRegions()])
@@ -168,7 +160,7 @@ const Items = ({ route, navigation }) => {
         else setLoading(true);
         setError('');
         try {
-            const data = await getListingsPage({ ...requestParams, page: requestedPage });
+            const data = await getListingsPage({ ...requestParams, page: requestedPage, force: refresh });
             const nextResults = locationMode && buyerLocation
                 ? await addDistancesToListings(data.results, buyerLocation)
                 : data.results;
@@ -458,20 +450,8 @@ const Items = ({ route, navigation }) => {
                     ListHeaderComponent={error ? <TouchableOpacity onPress={() => loadListings()} style={{ backgroundColor: '#FDECEC', borderRadius: 10, padding: 12, margin: 5 }}><Text style={[FONTS.fontSm, { color: COLORS.danger, textAlign: 'center' }]}>{error} Tap to retry.</Text></TouchableOpacity> : null}
                     ListEmptyComponent={!error ? <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 35 }}><FeatherIcon name="search" size={32} color={colors.textLight} /><Text style={[FONTS.font, { color: colors.text, textAlign: 'center', marginTop: 12 }]}>No matching ads were found. Try removing a filter or searching another area.</Text></View> : null}
                     ListFooterComponent={loadingMore ? <ActivityIndicator color={COLORS.primary} style={{ paddingVertical: 20 }} /> : null}
-                    renderItem={({ item }) => <View style={layout === 'grid' ? { width: '50%', padding: 5 } : { width: '100%', padding: 5 }}><CardStyle1 list={layout === 'list'} item={item} showCompare onCompareChange={(count) => setCompareCount(count)} onCompareError={setNotice} /></View>}
+                    renderItem={({ item }) => <View style={layout === 'grid' ? { width: '50%', padding: 5 } : { width: '100%', padding: 5 }}><CardStyle1 list={layout === 'list'} item={item} /></View>}
                 />
-            )}
-
-            {compareCount > 0 && (
-                <TouchableOpacity
-                    onPress={() => navigation.navigate('CompareAds')}
-                    activeOpacity={0.9}
-                    style={{ position: 'absolute', left: 55, right: 55, bottom: 16, minHeight: 49, borderRadius: 16, backgroundColor: COLORS.secondary, shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
-                >
-                    <FeatherIcon name="columns" size={18} color={COLORS.white} />
-                    <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.white, marginLeft: 8 }]}>Compare ads · {compareCount}/3</Text>
-                    <FeatherIcon name="chevron-right" size={18} color={COLORS.white} style={{ marginLeft: 7 }} />
-                </TouchableOpacity>
             )}
 
             <MarketplaceSelectionModal visible={categoryModal} title="Choose a category" groups={categoryGroups} selectedId={selectedCategory?.id || 'all'} onSelect={chooseCategory} onClose={() => setCategoryModal(false)} searchPlaceholder="Search categories" />

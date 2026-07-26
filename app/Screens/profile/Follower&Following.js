@@ -38,8 +38,8 @@ const FollowerFollowing = ({ navigation, route }) => {
         setError('');
         try {
             const [followerData, followingData] = await Promise.all([
-                getFollowers(userId),
-                getFollowing(userId),
+                getFollowers(userId, { force: refresh }),
+                getFollowing(userId, { force: refresh }),
             ]);
             setFollowers(followerData);
             setFollowing(followingData);

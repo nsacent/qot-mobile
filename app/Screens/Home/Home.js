@@ -49,7 +49,10 @@ const HomeScreen = ({ navigation }) => {
         refresh ? setRefreshing(true) : setLoading(true);
         setError('');
         try {
-            const [homeData, categoryData] = await Promise.all([getHome(), getCategories()]);
+            const [homeData, categoryData] = await Promise.all([
+                getHome({ force: refresh }),
+                getCategories({ force: refresh }),
+            ]);
             setHome(homeData);
             const popularOrder = new Map((homeData.popular_categories || []).map((category, index) => [category.id, index]));
             setCategories([...categoryData].sort((a, b) => (
@@ -247,7 +250,7 @@ const HomeScreen = ({ navigation }) => {
                                     <FeatherIcon name="user-check" size={15} color={COLORS.primary} />
                                 </View>
                                 <View style={{ flex: 1, minWidth: 0, marginLeft: 8 }}>
-                                    <Text numberOfLines={1} style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title }]}>Following feed</Text>
+                                <Text numberOfLines={1} style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title }]}>For You</Text>
                                     <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, fontSize: 8, marginTop: 2 }]}>Sellers you follow</Text>
                                 </View>
                                 <FeatherIcon name="chevron-right" size={15} color={colors.textLight} />

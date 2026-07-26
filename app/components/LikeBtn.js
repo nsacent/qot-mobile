@@ -43,7 +43,7 @@ const LikeBtn = ({ listingId, initialLiked = false, onChange, onError }) => {
         >
             <FontAwesome
                 size={20}
-                color={isLiked ? COLORS.danger : COLORS.white}
+                color={isLiked ? COLORS.primary : COLORS.white}
                 name={isLiked ? 'heart' : 'heart-o'}
             />
         </Pressable>

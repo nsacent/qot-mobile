@@ -27,7 +27,7 @@ const Profile = ({ navigation }) => {
     const loadProfile = useCallback(async (showRefresh = false) => {
         if (showRefresh) setRefreshing(true);
         try {
-            const [, myAds] = await Promise.all([refreshUser(), getMyListings()]);
+            const [, myAds] = await Promise.all([refreshUser(), getMyListings({ force: showRefresh })]);
             setAds(myAds);
         } catch {
             // Keep the last usable profile visible when a refresh fails.
@@ -88,86 +88,106 @@ const Profile = ({ navigation }) => {
     const actions = [
         {
             icon: 'bar-chart-2',
-            label: 'Seller dashboard',
+            label: 'Dashboard',
             detail: 'Performance, expiry and renewal overview',
+            color: '#2563EB',
+            background: '#EFF6FF',
             onPress: () => navigation.navigate('SellerDashboard'),
         },
         {
             icon: 'trending-up',
             label: 'Ad analytics',
             detail: 'Views, saves and buyer conversations',
+            color: '#7C3AED',
+            background: '#F5F3FF',
             onPress: () => navigation.navigate('SellerAnalytics'),
         },
         {
             icon: 'refresh-cw',
             label: 'Renewals',
             detail: 'Expiry dates and ads that need attention',
+            color: '#D97706',
+            background: '#FFFBEB',
             onPress: () => navigation.navigate('SellerRenewals'),
         },
         {
             icon: 'tag',
             label: 'My ads',
             detail: 'Manage active, pending and draft ads',
+            color: COLORS.primary,
+            background: '#FFF7ED',
             onPress: () => navigation.navigate('MyAds', { initialTab: 'ads' }),
         },
         {
             icon: 'users',
             label: 'Trusted sellers',
             detail: 'Browse verified and highly rated sellers',
+            color: '#168554',
+            background: '#ECFDF5',
             onPress: () => navigation.navigate('Sellers'),
         },
         {
             icon: 'heart',
             label: 'Saved ads',
             detail: 'Return to ads you want to see again',
+            color: '#EA580C',
+            background: '#FFF7ED',
             onPress: () => navigation.navigate('Saved', { initialTab: 'ads' }),
         },
         {
             icon: 'bookmark',
             label: 'Saved searches',
             detail: 'Manage searches and matching-ad alerts',
+            color: '#0F766E',
+            background: '#F0FDFA',
             onPress: () => navigation.navigate('Saved', { initialTab: 'searches' }),
         },
         {
             icon: 'clock',
             label: 'Recently viewed',
             detail: 'Return to ads you opened recently',
+            color: '#4F46E5',
+            background: '#EEF2FF',
             onPress: () => navigation.navigate('RecentlyViewed'),
-        },
-        {
-            icon: 'columns',
-            label: 'Compare ads',
-            detail: 'Compare price, condition and specifications',
-            onPress: () => navigation.navigate('CompareAds'),
         },
         {
             icon: 'activity',
             label: 'Activity',
             detail: 'Your alerts, ads, saves and reviews',
+            color: '#0284C7',
+            background: '#F0F9FF',
             onPress: () => navigation.navigate('AccountActivity'),
         },
         {
             icon: 'bell',
             label: 'Notifications',
             detail: 'Read your latest ad, account and message updates',
+            color: COLORS.primary,
+            background: '#FFF7ED',
             onPress: () => navigation.navigate('NotificationsCenter'),
         },
         {
             icon: 'star',
             label: 'My reviews',
             detail: 'See reviews you have submitted for sellers',
+            color: '#CA8A04',
+            background: '#FEFCE8',
             onPress: () => navigation.navigate('MyReviews'),
         },
         {
             icon: 'message-circle',
             label: 'Messages',
             detail: 'Continue conversations with buyers and sellers',
+            color: '#2563EB',
+            background: '#EFF6FF',
             onPress: () => navigation.navigate('Messages'),
         },
         {
             icon: 'settings',
             label: 'Account settings',
             detail: 'Profile, notifications, privacy and security',
+            color: '#475569',
+            background: '#F1F5F9',
             onPress: () => navigation.navigate('Setting'),
         },
     ];
@@ -310,8 +330,8 @@ const Profile = ({ navigation }) => {
                                 onPress={action.onPress}
                                 style={{ flexDirection: 'row', alignItems: 'center', minHeight: 70, paddingHorizontal: 15, backgroundColor: colors.card, borderTopWidth: index ? 1 : 0, borderTopColor: colors.border }}
                             >
-                                <View style={{ height: 40, width: 40, borderRadius: 11, backgroundColor: `${COLORS.primary}12`, alignItems: 'center', justifyContent: 'center' }}>
-                                    <FeatherIcon name={action.icon} size={19} color={COLORS.primary} />
+                                <View style={{ height: 42, width: 42, borderRadius: 13, borderWidth: 1, borderColor: `${action.color}22`, backgroundColor: action.background, alignItems: 'center', justifyContent: 'center' }}>
+                                    <FeatherIcon name={action.icon} size={19} color={action.color} />
                                 </View>
                                 <View style={{ flex: 1, marginLeft: 12 }}>
                                     <Text style={[FONTS.font, FONTS.fontTitle, { color: colors.title }]}>{action.label}</Text>

@@ -72,7 +72,7 @@ const SellerRenewals = ({ navigation }) => {
         refresh ? setRefreshing(true) : setLoading(true);
         setError('');
         try {
-            setListings(await getMyListings());
+            setListings(await getMyListings({ force: refresh }));
         } catch (requestError) {
             setError(requestError.message || 'Your renewals could not be loaded.');
         } finally {

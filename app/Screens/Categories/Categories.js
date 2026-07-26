@@ -31,7 +31,7 @@ const Categories = ({ navigation }) => {
         refresh ? setRefreshing(true) : setLoading(true);
         setError('');
         try {
-            setCategories(await getCategories());
+            setCategories(await getCategories({ force: refresh }));
         } catch (requestError) {
             setError(requestError.message);
         } finally {

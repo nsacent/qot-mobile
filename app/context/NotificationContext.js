@@ -46,7 +46,7 @@ export const NotificationProvider = ({ children }) => {
 
         if (showLoading) setLoading(true);
         try {
-            const items = await getNotifications();
+            const items = await getNotifications({ force: showLoading });
             if (mounted.current) {
                 setNotifications(newestFirst(items));
                 setError('');

@@ -23,13 +23,13 @@ import CardStyle1 from '../../components/Card/CardStyle1';
 import ReportAdModal from '../../components/ReportAdModal';
 import AdPhotoGallery from '../../components/AdPhotoGallery';
 import BuyerContactModal from '../../components/BuyerContactModal';
+import CachedImage from '../../components/CachedImage';
 import { getListing, getListingsPage } from '../../api/marketplace';
 import { followSeller, getSeller, unfollowSeller } from '../../api/account';
 import { createChatThread, sendChatOffer } from '../../api/chats';
 import { formatDate, formatPrice, formatRelativeTime } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 import { recordRecentlyViewed } from '../../utils/recentlyViewed';
-import { getComparisonAds, toggleComparisonAd } from '../../utils/compareAds';
 import {
     distanceToListing,
     formatDistance,
@@ -63,7 +63,6 @@ const ItemDetails = ({ route, navigation }) => {
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [error, setError] = useState('');
-    const [compared, setCompared] = useState(false);
     const [distanceKm, setDistanceKm] = useState(null);
 
     const loadListing = useCallback(async () => {
@@ -109,26 +108,12 @@ const ItemDetails = ({ route, navigation }) => {
         recordRecentlyViewed(listing).catch(() => {
             // Browsing history is optional and must never interrupt an ad page.
         });
-        getComparisonAds().then((items) => setCompared(items.some((item) => String(item.id) === String(listing.id))));
         getStoredBuyerLocation().then(async (buyerLocation) => {
             if (!buyerLocation) return;
             const distance = await distanceToListing(listing, buyerLocation);
             setDistanceKm(distance);
         }).catch(() => {});
     }, [listing?.id]);
-
-    const toggleCompare = async () => {
-        if (!listing) return;
-        const result = await toggleComparisonAd(listing);
-        if (result.limitReached) {
-            Alert.alert('Comparison is full', 'You can compare up to three ads. Open the comparison and remove one first.', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'View comparison', onPress: () => navigation.navigate('CompareAds') },
-            ]);
-            return;
-        }
-        setCompared(result.isCompared);
-    };
 
     const images = useMemo(() => {
         const remoteImages = (listing?.images || [])
@@ -242,7 +227,13 @@ const ItemDetails = ({ route, navigation }) => {
                                     }}
                                     style={{ flex: 1 }}
                                 >
-                                    <Image style={{ height: '100%', width: '100%', resizeMode: 'cover' }} source={source} />
+                                    <CachedImage
+                                        style={{ height: '100%', width: '100%' }}
+                                        source={source}
+                                        resizeMode="cover"
+                                        cacheVersion={listing.images_updated_at || listing.updated_at}
+                                        recyclingKey={`ad-${listing.id}-photo-${index}-${source.uri || 'placeholder'}`}
+                                    />
                                     <LinearGradient
                                         colors={['rgba(0,0,0,.5)', 'rgba(0,0,0,0)']}
                                         style={{ position: 'absolute', height: 100, width: '100%', top: 0 }}
@@ -280,9 +271,6 @@ const ItemDetails = ({ route, navigation }) => {
                             <TouchableOpacity onPress={shareListing} style={{ height: 44, width: 44, alignItems: 'center', justifyContent: 'center' }}>
                                 <FeatherIcon size={21} color={COLORS.white} name="share-2" />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={toggleCompare} accessibilityLabel={compared ? 'Remove from comparison' : 'Compare this ad'} style={{ height: 44, width: 44, alignItems: 'center', justifyContent: 'center' }}>
-                                <FeatherIcon size={21} color={compared ? COLORS.primary : COLORS.white} name={compared ? 'check-square' : 'columns'} />
-                            </TouchableOpacity>
                             <View style={{ height: 44, width: 44, alignItems: 'center', justifyContent: 'center' }}>
                                 <LikeBtn listingId={listing.id} initialLiked={Boolean(listing.is_favorited)} />
                             </View>
@@ -292,7 +280,7 @@ const ItemDetails = ({ route, navigation }) => {
                     <View style={GlobalStyleSheet.container}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 7 }}>
                             {listing.is_featured && (
-                                <View style={{ backgroundColor: '#FF5A1F', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, marginRight: 8 }}>
+                                <View style={{ backgroundColor: COLORS.primary, borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, marginRight: 8 }}>
                                     <Text style={{ ...FONTS.fontXs, fontSize: 9, color: COLORS.white, fontWeight: '700' }}>FEATURED</Text>
                                 </View>
                             )}

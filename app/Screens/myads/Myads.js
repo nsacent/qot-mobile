@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
-    Image,
     Modal,
     Pressable,
     RefreshControl,
@@ -28,6 +27,9 @@ import {
     resumeListing,
 } from '../../api/marketplace';
 import { formatExpiryRemaining, formatPrice, formatRelativeTime } from '../../utils/formatters';
+import CachedImage from '../../components/CachedImage';
+import { useAuth } from '../../context/AuthContext';
+import { clearLocalListingDraft, getLocalListingDraft } from '../../cache/localDraft';
 
 const STATUSES = [
     ['all', 'All'],
@@ -114,6 +116,7 @@ const lifecycleActions = (item) => {
 
 const Myads = ({ navigation }) => {
     const { colors } = useTheme();
+    const { user } = useAuth();
     const [selectedStatus, setSelectedStatus] = useState('all');
     const [ads, setAds] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -134,8 +137,10 @@ const Myads = ({ navigation }) => {
         setError('');
         try {
             const [myAds, draft] = await Promise.all([
-                getMyListings(),
-                getListingDraft().catch(() => null),
+                getMyListings({ force: refresh }),
+                getListingDraft({ force: refresh })
+                    .then(async (draft) => draft || await getLocalListingDraft(user?.id))
+                    .catch(() => getLocalListingDraft(user?.id)),
             ]);
             const draftData = draft?.data || {};
             const draftPhoto = draft?.staged_images?.[0];
@@ -159,7 +164,7 @@ const Myads = ({ navigation }) => {
             setLoading(false);
             setRefreshing(false);
         }
-    }, []);
+    }, [user?.id]);
 
     useEffect(() => {
         loadData();
@@ -182,7 +187,10 @@ const Myads = ({ navigation }) => {
         setActionError('');
         try {
             const { item, key } = pendingAction;
-            if (key === 'remove' && item.is_incomplete_draft) await clearListingDraft();
+            if (key === 'remove' && item.is_incomplete_draft) {
+                await clearListingDraft();
+                await clearLocalListingDraft(user?.id);
+            }
             else if (key === 'remove') await deleteListing(item.id);
             if (key === 'sold') await markListingSold(item.id);
             if (key === 'pause') await pauseListing(item.id);
@@ -255,7 +263,7 @@ const Myads = ({ navigation }) => {
                         <View style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderColor, borderRadius: 15, marginBottom: 13, overflow: 'hidden' }}>
                             <TouchableOpacity onPress={() => item.is_incomplete_draft ? navigation.navigate('Sell') : navigation.navigate('ItemDetails', { listingId: item.id })} activeOpacity={0.84} style={{ padding: 11 }}>
                                 <View style={{ flexDirection: 'row' }}>
-                                    <Image source={item.primary_image ? { uri: item.primary_image } : IMAGES.detail1} style={{ width: 96, height: 90, borderRadius: 10, backgroundColor: colors.borderColor }} resizeMode="cover" />
+                                    <CachedImage source={item.primary_image ? { uri: item.primary_image } : IMAGES.detail1} style={{ width: 96, height: 90, borderRadius: 10, backgroundColor: colors.borderColor }} resizeMode="cover" cacheVersion={item.images_updated_at || item.updated_at} recyclingKey={`my-ad-${item.id}-${item.primary_image || 'placeholder'}`} />
                                     <View style={{ flex: 1, marginLeft: 11 }}>
                                         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                                             <Text numberOfLines={2} style={[FONTS.font, FONTS.fontTitle, { color: colors.title, flex: 1, lineHeight: 19 }]}>{item.title}</Text>

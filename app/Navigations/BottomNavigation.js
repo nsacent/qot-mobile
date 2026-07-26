@@ -15,6 +15,7 @@ const BottomNavigation = () => {
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
+                tabBarHideOnKeyboard: true,
             }}
             initialRouteName={'Home'}
             tabBar={props => <BottomTab {...props} />}

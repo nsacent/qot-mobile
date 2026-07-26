@@ -56,7 +56,7 @@ const Sellers = ({ navigation }) => {
         setError('');
 
         try {
-            const data = await getSellersPage({ search: searchTerm, page: pageNumber });
+            const data = await getSellersPage({ search: searchTerm, page: pageNumber, force: refresh });
             if (currentRequest !== requestId.current) return;
 
             // The API owns the directory rules and ranking. This guard prevents stale

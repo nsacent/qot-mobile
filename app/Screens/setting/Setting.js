@@ -15,6 +15,8 @@ import Header from '../../layout/Header';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
+import { Image as ExpoImage } from 'expo-image';
+import { clearQueryCache } from '../../cache/queryCache';
 
 const QuickTile = ({ icon, title, detail, color, background, onPress }) => {
     const { colors } = useTheme();
@@ -87,6 +89,27 @@ const Setting = ({ navigation }) => {
                     onPress: async () => {
                         await signOut();
                         navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+                    },
+                },
+            ],
+        );
+    };
+
+    const confirmClearCache = () => {
+        Alert.alert(
+            'Clear cached data?',
+            'Temporary ads, categories and images will be downloaded again when needed. Your account, drafts, saved ads and browsing history will remain.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Clear cache',
+                    onPress: async () => {
+                        await Promise.all([
+                            clearQueryCache(),
+                            ExpoImage.clearMemoryCache(),
+                            ExpoImage.clearDiskCache(),
+                        ]);
+                        Alert.alert('Cache cleared', 'QOT temporary data has been removed from this device.');
                     },
                 },
             ],
@@ -169,6 +192,11 @@ const Setting = ({ navigation }) => {
                         <SettingRow icon="tag" title="My ads" detail="Manage and review your adverts" onPress={() => navigation.navigate('MyAds')} />
                         <SettingRow icon="heart" title="Saved" detail="Saved ads and saved searches" onPress={() => openBottomTab('Saved')} />
                         <SettingRow icon="clock" title="Recently viewed" detail="Return to ads you opened" onPress={() => navigation.navigate('RecentlyViewed')} />
+                    </View>
+
+                    <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, textTransform: 'uppercase', letterSpacing: 0.65, marginTop: 23, marginBottom: 9 }]}>Storage & data</Text>
+                    <View style={{ borderRadius: 16, borderWidth: 1, borderColor: colors.borderColor, overflow: 'hidden' }}>
+                        <SettingRow first icon="database" title="Clear cached data" detail="Free space without deleting drafts or account data" onPress={confirmClearCache} />
                     </View>
 
                     <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, textTransform: 'uppercase', letterSpacing: 0.65, marginTop: 23, marginBottom: 9 }]}>Help & support</Text>

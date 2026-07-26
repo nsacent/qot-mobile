@@ -12,6 +12,7 @@ import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
 import FacebookSignInButton from '../../components/FacebookSignInButton';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -152,6 +153,7 @@ const SignIn = ({ navigation }) => {
                         <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
                     </View>
 
+                    <GoogleSignInButton navigation={navigation} />
                     <FacebookSignInButton navigation={navigation} />
 
                     <View style={{ marginTop: 22 }}>

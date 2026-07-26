@@ -15,6 +15,8 @@ import {
     saveSession,
 } from '../api/session';
 import { unregisterPushNotifications } from '../services/pushNotifications';
+import { clearSessionCache } from '../cache/queryCache';
+import { clearPrivateDeviceCache } from '../cache/localDraft';
 
 const AuthContext = createContext(null);
 
@@ -49,6 +51,7 @@ export const AuthProvider = ({ children }) => {
 
     const signIn = useCallback(async (credentials) => {
         const result = await authApi.login(credentials);
+        clearSessionCache();
         await saveSession({ user: result.user, tokens: result.tokens });
         setUser(result.user);
         return result.user;
@@ -56,6 +59,7 @@ export const AuthProvider = ({ children }) => {
 
     const signUp = useCallback(async (details) => {
         const result = await authApi.register(details);
+        clearSessionCache();
         await saveSession({ user: result.user, tokens: result.tokens });
         setUser(result.user);
         return result.user;
@@ -66,12 +70,25 @@ export const AuthProvider = ({ children }) => {
             accessToken,
             keepSignedIn: true,
         });
+        clearSessionCache();
+        await saveSession({ user: result.user, tokens: result.tokens });
+        setUser(result.user);
+        return result.user;
+    }, []);
+
+    const signInWithGoogle = useCallback(async (credential) => {
+        const result = await authApi.loginWithGoogle({
+            credential,
+            keepSignedIn: true,
+        });
+        clearSessionCache();
         await saveSession({ user: result.user, tokens: result.tokens });
         setUser(result.user);
         return result.user;
     }, []);
 
     const signOut = useCallback(async () => {
+        const userId = getSession()?.user?.id;
         const refresh = getSession()?.tokens?.refresh;
         await unregisterPushNotifications().catch(() => {});
         try {
@@ -80,6 +97,8 @@ export const AuthProvider = ({ children }) => {
             // Local sign-out must still complete if the token has expired.
         }
         await clearSession();
+        clearSessionCache();
+        await clearPrivateDeviceCache(userId).catch(() => {});
         setUser(null);
     }, []);
 
@@ -105,6 +124,7 @@ export const AuthProvider = ({ children }) => {
         signIn,
         signUp,
         signInWithFacebook,
+        signInWithGoogle,
         signOut,
         refreshUser,
         updateCurrentUser,
@@ -114,6 +134,7 @@ export const AuthProvider = ({ children }) => {
         signIn,
         signUp,
         signInWithFacebook,
+        signInWithGoogle,
         signOut,
         refreshUser,
         updateCurrentUser,

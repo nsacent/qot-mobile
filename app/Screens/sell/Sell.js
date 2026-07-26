@@ -37,6 +37,11 @@ import {
 } from '../../api/marketplace';
 import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/formatters';
+import {
+    clearLocalListingDraft,
+    getLocalListingDraft,
+    saveLocalListingDraft,
+} from '../../cache/localDraft';
 
 const STEPS = [
     ['grid', 'Category'],
@@ -98,7 +103,17 @@ const Sell = ({ navigation, route }) => {
         Promise.all([
             getCategories(),
             getRegions(),
-            isEditing ? getOwnedListing(listingId) : getListingDraft(),
+            isEditing
+                ? getOwnedListing(listingId)
+                : getListingDraft().then(async (serverDraft) => {
+                    if (serverDraft) return serverDraft;
+                    const localDraft = await getLocalListingDraft(user?.id);
+                    return localDraft ? { ...localDraft, is_local_cache: true } : null;
+                }).catch(async (requestError) => {
+                    const localDraft = await getLocalListingDraft(user?.id);
+                    if (localDraft) return { ...localDraft, is_local_cache: true };
+                    throw requestError;
+                }),
         ])
             .then(([categoryData, regionData, existing]) => {
                 if (!active) return;
@@ -146,7 +161,9 @@ const Sell = ({ navigation, route }) => {
                         sourceUri: image.source_image_url || image.image_url,
                         progress: 100,
                     })));
-                    setDraftStatus('Your saved draft has been restored.');
+                    setDraftStatus(existing.is_local_cache
+                        ? 'Your offline draft has been restored from this device.'
+                        : 'Your saved draft has been restored.');
                     setStep(selected ? 1 : 0);
                 } else {
                     setSelectedCity(findCity(regionData, user?.profile?.default_city) || null);
@@ -201,25 +218,38 @@ const Sell = ({ navigation, route }) => {
         if (!hasContent) return undefined;
 
         const timeout = setTimeout(async () => {
+            const draftData = {
+                category: selectedCategory?.id || '',
+                city: selectedCity?.id || '',
+                title,
+                description,
+                price,
+                condition,
+                is_negotiable: negotiable,
+                category_filter_values: filterValues,
+            };
+            const localDraft = {
+                data: draftData,
+                staged_images: images
+                    .filter((image) => image.staged && !image.uploading)
+                    .map((image) => ({
+                        id: image.id,
+                        card_image_url: image.uri,
+                        image_url: image.sourceUri || image.uri,
+                        source_image_url: image.sourceUri || image.uri,
+                    })),
+            };
             try {
-                await saveListingDraft({
-                    category: selectedCategory?.id || '',
-                    city: selectedCity?.id || '',
-                    title,
-                    description,
-                    price,
-                    condition,
-                    is_negotiable: negotiable,
-                    category_filter_values: filterValues,
-                }, stagedImageIds);
+                await saveLocalListingDraft(user?.id, localDraft);
+                await saveListingDraft(draftData, stagedImageIds);
                 setDraftStatus('Draft saved automatically.');
             } catch (requestError) {
-                setDraftStatus(requestError.message || 'Draft could not be saved.');
+                setDraftStatus('Draft saved on this device and can be restored offline.');
             }
         }, 1200);
 
         return () => clearTimeout(timeout);
-    }, [condition, description, draftReady, filterValues, images.length, isEditing, negotiable, price, selectedCategory?.id, selectedCity?.id, stagedImageIds, submitting, title, uploading]);
+    }, [condition, description, draftReady, filterValues, images, isEditing, negotiable, price, selectedCategory?.id, selectedCity?.id, stagedImageIds, submitting, title, uploading, user?.id]);
 
     const categoryGroups = useMemo(() => categories.map((category) => ({
         title: category.name,
@@ -468,6 +498,7 @@ const Sell = ({ navigation, route }) => {
                 await createListing(formData);
                 setDraftReady(false);
                 await clearListingDraft().catch(() => null);
+                await clearLocalListingDraft(user?.id).catch(() => null);
             }
 
             navigation.replace('MyAds', { initialTab: 'ads' });
@@ -483,6 +514,7 @@ const Sell = ({ navigation, route }) => {
         setError('');
         try {
             await clearListingDraft();
+            await clearLocalListingDraft(user?.id);
             setSelectedCategory(null);
             setSelectedCity(findCity(regions, user?.profile?.default_city) || null);
             setCategoryFilters([]);

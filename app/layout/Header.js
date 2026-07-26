@@ -78,7 +78,7 @@ const Header = (props) => {
                     <IconButton
                         onPress={() => props.handleLike()}
                         size={20}
-                        iconColor={props.isLike ? "#F9427B" : colors.title}
+                        iconColor={props.isLike ? COLORS.primary : colors.title}
                         icon={val => <FontAwesome name={props.isLike ? "heart" : "heart-o"} {...val} />}
                     />
                 }

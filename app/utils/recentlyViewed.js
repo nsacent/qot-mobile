@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'qot.recentlyViewed';
+const STORAGE_KEY = 'qot:v1:recently-viewed';
+const LEGACY_STORAGE_KEY = 'qot.recentlyViewed';
 const MAX_ITEMS = 20;
 
 const imageFor = (listing) => (
@@ -32,13 +33,19 @@ const snapshot = (listing) => ({
     views_count: Number(listing?.views_count || listing?.views || 0),
     image_count: Number(listing?.image_count || listing?.images?.length || 0),
     created_at: listing?.created_at || null,
+    updated_at: listing?.updated_at || null,
     viewed_at: new Date().toISOString(),
 });
 
 export const getRecentlyViewed = async () => {
     try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await AsyncStorage.getItem(STORAGE_KEY)
+            || await AsyncStorage.getItem(LEGACY_STORAGE_KEY);
         const items = raw ? JSON.parse(raw) : [];
+        if (raw && !await AsyncStorage.getItem(STORAGE_KEY)) {
+            await AsyncStorage.setItem(STORAGE_KEY, raw);
+            await AsyncStorage.removeItem(LEGACY_STORAGE_KEY);
+        }
         return Array.isArray(items) ? items.filter((item) => item?.id) : [];
     } catch {
         return [];
@@ -64,5 +71,5 @@ export const removeRecentlyViewed = async (listingId) => {
 };
 
 export const clearRecentlyViewed = async () => {
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await AsyncStorage.multiRemove([STORAGE_KEY, LEGACY_STORAGE_KEY]);
 };

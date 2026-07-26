@@ -150,8 +150,8 @@ const SellerDashboard = ({ navigation }) => {
         setError('');
         try {
             const [summary, sellerListings] = await Promise.all([
-                getSellerDashboard(),
-                getMyListings(),
+                getSellerDashboard({ force: refresh }),
+                getMyListings({ force: refresh }),
             ]);
             setDashboard(summary);
             setListings(sellerListings);
@@ -236,7 +236,7 @@ const SellerDashboard = ({ navigation }) => {
     if (loading) {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-                <Header title="Seller dashboard" leftIcon="back" titleLeft />
+                <Header title="Dashboard" leftIcon="back" titleLeft />
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
                     <Text style={[FONTS.font, { color: colors.text, marginTop: 12 }]}>Loading your dashboard...</Text>
@@ -247,7 +247,7 @@ const SellerDashboard = ({ navigation }) => {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <Header title="Seller dashboard" leftIcon="back" titleLeft />
+            <Header title="Dashboard" leftIcon="back" titleLeft />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadDashboard(true)} tintColor={COLORS.primary} colors={[COLORS.primary]} />}

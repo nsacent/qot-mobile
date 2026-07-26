@@ -45,6 +45,16 @@ export const loginWithFacebook = ({ accessToken, keepSignedIn = true }) => (
     })
 );
 
+export const loginWithGoogle = ({ credential, keepSignedIn = true }) => (
+    apiRequest('/auth/google/', {
+        method: 'POST',
+        body: {
+            credential,
+            keep_signed_in: keepSignedIn,
+        },
+    })
+);
+
 export const getCurrentUser = () => (
     apiRequest('/auth/me/', { authenticated: true })
 );
