@@ -91,6 +91,7 @@ export const IMAGES = {
 	user: require('../assets/images/user.png'),
 	logo: require('../assets/images/logo.png'),
 	logowhite: require('../assets/images/logo-white.png'),
+	qotLogo: require('../assets/images/qot-logo.png'),
 	sun: require('../assets/images/icons/sun.png'),
 	moon: require('../assets/images/icons/moon.png'),
 	plus: require('../assets/images/icons/plus.png'),

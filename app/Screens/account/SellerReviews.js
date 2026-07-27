@@ -28,6 +28,7 @@ import {
 } from '../../api/account';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
+import { hasPrimaryVerification } from '../../utils/verification';
 
 const ratingLabels = ['', 'Very poor', 'Poor', 'Average', 'Good', 'Excellent'];
 
@@ -97,7 +98,7 @@ const SellerReviews = ({ navigation, route }) => {
     const canReview = Boolean(listingId && String(user?.id) !== String(sellerId));
 
     const openReviewForm = () => {
-        if (!user?.is_verified) {
+        if (!hasPrimaryVerification(user)) {
             navigation.navigate('VerifyAccount');
             return;
         }
@@ -229,7 +230,7 @@ const SellerReviews = ({ navigation, route }) => {
             )}
 
             <Modal visible={formOpen} transparent animationType="fade" onRequestClose={() => !submitting && setFormOpen(false)}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                     <Pressable onPress={() => !submitting && setFormOpen(false)} style={{ flex: 1, backgroundColor: 'rgba(12,16,28,.58)', padding: 18, alignItems: 'center', justifyContent: 'center' }}>
                         <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 430, maxHeight: '92%', borderRadius: 22, backgroundColor: colors.card, overflow: 'hidden' }}>
                             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 18 }}>

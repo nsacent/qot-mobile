@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
-    Image,
     RefreshControl,
     SafeAreaView,
     Text,
@@ -16,7 +15,7 @@ import Header from '../../layout/Header';
 import { COLORS, FONTS } from '../../constants/theme';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { getCategories } from '../../api/marketplace';
-import { categoryIcon } from '../Home/CategoryList';
+import CategoryIcon from '../../components/CategoryIcon';
 
 const Categories = ({ navigation }) => {
     const { colors } = useTheme();
@@ -46,13 +45,22 @@ const Categories = ({ navigation }) => {
 
     const filteredCategories = useMemo(() => {
         const normalized = query.trim().toLowerCase();
-        if (!normalized) return categories;
-        return categories.flatMap((category) => {
+        const allCategories = {
+            id: 'all-categories',
+            name: 'All categories',
+            slug: 'all',
+            isAllCategories: true,
+            children: [],
+            listings_count: categories.reduce((total, category) => total + Number(category.listings_count || 0), 0),
+        };
+        if (!normalized) return [allCategories, ...categories];
+        const matches = categories.flatMap((category) => {
             const parentMatches = category.name.toLowerCase().includes(normalized);
             const matchingChildren = (category.children || []).filter((child) => child.name.toLowerCase().includes(normalized));
             if (!parentMatches && !matchingChildren.length) return [];
             return [{ ...category, children: parentMatches ? category.children : matchingChildren }];
         });
+        return 'all categories'.includes(normalized) ? [allCategories, ...matches] : matches;
     }, [categories, query]);
 
     const openCategory = (item) => navigation.navigate('Items', {
@@ -61,11 +69,20 @@ const Categories = ({ navigation }) => {
     });
 
     const renderCategory = ({ item }) => {
+        if (item.isAllCategories) {
+            return (
+                <TouchableOpacity onPress={() => navigation.navigate('Items', { cat: 'All ads' })} activeOpacity={0.84} style={{ minHeight: 76, backgroundColor: `${COLORS.primary}0D`, borderWidth: 1, borderColor: `${COLORS.primary}45`, borderRadius: 16, marginBottom: 12, padding: 12, flexDirection: 'row', alignItems: 'center' }}>
+                    <CategoryIcon slug="all" selected size={20} containerSize={50} borderRadius={15} />
+                    <View style={{ flex: 1, marginLeft: 12 }}><Text style={[FONTS.font, FONTS.fontTitle, { color: colors.title }]}>All categories</Text><Text style={[FONTS.fontXs, { color: colors.text, marginTop: 3 }]}>{Number(item.listings_count || 0).toLocaleString()} active ads across QOT</Text></View>
+                    <FeatherIcon name="arrow-right" size={19} color={COLORS.primary} />
+                </TouchableOpacity>
+            );
+        }
         const expanded = Boolean(query.trim()) || String(expandedId) === String(item.id);
         return (
             <View style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: expanded ? `${COLORS.primary}55` : colors.borderColor, borderRadius: 16, marginBottom: 12, overflow: 'hidden' }}>
                 <TouchableOpacity onPress={() => setExpandedId((current) => String(current) === String(item.id) ? null : item.id)} activeOpacity={0.84} style={{ minHeight: 76, padding: 12, flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ height: 50, width: 50, borderRadius: 15, backgroundColor: `${COLORS.primary}10`, alignItems: 'center', justifyContent: 'center' }}><Image source={categoryIcon(item.slug)} style={{ height: 32, width: 32, resizeMode: 'contain' }} /></View>
+                    <CategoryIcon slug={item.slug} selected={expanded} size={20} containerSize={50} borderRadius={15} />
                     <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={[FONTS.font, FONTS.fontTitle, { color: colors.title }]}>{item.name}</Text>
                         <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 3 }]}>{item.children?.length || 0} subcategories · {Number(item.listings_count || 0).toLocaleString()} active ads</Text>
@@ -79,7 +96,8 @@ const Categories = ({ navigation }) => {
                             {(item.children || []).map((child) => (
                                 <View key={child.id} style={{ width: '50%', paddingHorizontal: 4, marginBottom: 8 }}>
                                     <TouchableOpacity onPress={() => openCategory(child)} style={{ minHeight: 48, borderRadius: 11, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderColor, paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center' }}>
-                                        <View style={{ flex: 1 }}>
+                                        <CategoryIcon slug={child.slug} size={13} containerSize={31} borderRadius={10} />
+                                        <View style={{ flex: 1, marginLeft: 8 }}>
                                             <Text numberOfLines={2} style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title, lineHeight: 15 }]}>{child.name}</Text>
                                             <Text style={[FONTS.fontXs, { color: colors.textLight, fontSize: 9, marginTop: 2 }]}>{Number(child.listings_count || 0).toLocaleString()} ads</Text>
                                         </View>

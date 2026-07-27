@@ -9,8 +9,9 @@ import { formatDistance } from '../../utils/nearbyAds';
 import CachedImage from '../CachedImage';
 
 const CardStyle1 = ({ item, list, onFavoriteChange, onFavoriteError }) => {
-    const { colors } = useTheme();
+    const { colors, dark } = useTheme();
     const navigation = useNavigation();
+    const isNearbyAd = Number.isFinite(item.distance_km);
     const imageSource = item.primary_image
         ? { uri: item.primary_image }
         : (item.image || IMAGES.detail1);
@@ -20,18 +21,27 @@ const CardStyle1 = ({ item, list, onFavoriteChange, onFavoriteError }) => {
             activeOpacity={0.9}
             onPress={() => navigation.navigate('ItemDetails', { listingId: item.id })}
         >
-            <View
-                style={[
-                    {
-                        backgroundColor: colors.card,
-                        borderWidth: 1,
-                        borderColor: colors.borderColor,
-                        borderRadius: SIZES.radius,
-                        overflow: 'hidden',
-                    },
-                    list && { flexDirection: 'row' },
-                ]}
-            >
+            <View style={{
+                borderRadius: SIZES.radius,
+                backgroundColor: dark ? colors.card : COLORS.white,
+                shadowColor: dark ? '#000000' : '#0F172A',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: dark ? 0.28 : 0.12,
+                shadowRadius: 8,
+                elevation: 4,
+            }}>
+                <View
+                    style={[
+                        {
+                            backgroundColor: dark ? colors.card : COLORS.white,
+                            borderWidth: 1,
+                            borderColor: dark ? colors.borderColor : '#EEF2F7',
+                            borderRadius: SIZES.radius,
+                            overflow: 'hidden',
+                        },
+                        list && { flexDirection: 'row' },
+                    ]}
+                >
                 <View style={list ? { width: 140 } : undefined}>
                     <CachedImage
                         source={imageSource}
@@ -87,22 +97,24 @@ const CardStyle1 = ({ item, list, onFavoriteChange, onFavoriteError }) => {
                             {item.is_negotiable && <Text style={[FONTS.fontXs, FONTS.fontTitle, { fontSize: 8, color: COLORS.primary, backgroundColor: `${COLORS.primary}10`, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2, marginLeft: 5 }]}>NEGOTIABLE</Text>}
                         </View>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                        <FeatherIcon size={12} color={colors.text} name="map-pin" />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 7, minWidth: 0 }}>
+                        <FeatherIcon size={11} color={colors.textLight} name="map-pin" />
                         <Text
                             numberOfLines={1}
-                            style={[FONTS.fontXs, { fontSize: 11, color: colors.text, marginLeft: 4, flex: 1 }]}
+                            style={[FONTS.fontXs, { fontSize: 9, color: colors.text, marginLeft: 3, flex: 1 }]}
                         >
-                            {item.city_name || item.location || 'Uganda'}{Number.isFinite(item.distance_km) ? ` · ${formatDistance(item.distance_km)}` : ''}
+                            {item.area_name || item.city_name || item.location || 'Uganda'}{isNearbyAd ? ` · ${formatDistance(item.distance_km)}` : ''}
                         </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 6, flexShrink: 0 }}>
+                            <FeatherIcon size={9} color={colors.textLight} name="clock" />
+                            <Text numberOfLines={1} style={[FONTS.fontXs, { fontSize: 8, color: colors.text, marginLeft: 3 }]}>{formatRelativeTime(item.created_at || item.published_at)}</Text>
+                        </View>
+                        <View accessibilityLabel={`${Number(item.views_count || item.views || 0).toLocaleString()} views`} style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 6, flexShrink: 0 }}>
+                            <FeatherIcon size={10} color={colors.textLight} name="eye" />
+                            <Text numberOfLines={1} style={[FONTS.fontXs, { fontSize: 8, color: colors.text, marginLeft: 3 }]}>{Number(item.views_count || item.views || 0).toLocaleString()}</Text>
+                        </View>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 7, minWidth: 0 }}>
-                        <FeatherIcon size={11} color={colors.textLight} name="eye" />
-                        <Text numberOfLines={1} style={[FONTS.fontXs, { fontSize: 9, color: colors.text, marginLeft: 4 }]}>{Number(item.views_count || item.views || 0).toLocaleString()} views</Text>
-                        <View style={{ height: 3, width: 3, borderRadius: 2, backgroundColor: colors.textLight, marginHorizontal: list ? 7 : 5 }} />
-                        <FeatherIcon size={10} color={colors.textLight} name="clock" />
-                        <Text numberOfLines={1} style={[FONTS.fontXs, { fontSize: 9, color: colors.text, marginLeft: 4, flexShrink: 1 }]}>{formatRelativeTime(item.created_at || item.published_at)}</Text>
-                    </View>
+                </View>
                 </View>
             </View>
         </TouchableOpacity>

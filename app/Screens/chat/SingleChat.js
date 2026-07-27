@@ -4,6 +4,7 @@ import {
     Alert,
     FlatList,
     Image,
+    Keyboard,
     KeyboardAvoidingView,
     Linking,
     Modal,
@@ -16,6 +17,7 @@ import {
     View,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
@@ -154,6 +156,8 @@ const ConfirmationModal = ({
 
 const SingleChat = ({ route, navigation }) => {
     const { colors } = useTheme();
+    const insets = useSafeAreaInsets();
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
     const { user } = useAuth();
     const threadId = route.params?.threadId || route.params?.thread?.id;
     const [thread, setThread] = useState(route.params?.thread || null);
@@ -182,6 +186,18 @@ const SingleChat = ({ route, navigation }) => {
     const listRef = useRef(null);
     const composerRef = useRef(null);
     const socketRef = useRef(null);
+
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const showSubscription = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+        const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
     const typingTimerRef = useRef(null);
 
     const loadChat = useCallback(async () => {
@@ -702,7 +718,11 @@ const SingleChat = ({ route, navigation }) => {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={0}
+            >
                 <View style={{ minHeight: 68, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.borderColor, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 }}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={{ height: 44, width: 38, alignItems: 'center', justifyContent: 'center' }}>
                         <FeatherIcon name="chevron-left" size={25} color={colors.title} />
@@ -746,6 +766,7 @@ const SingleChat = ({ route, navigation }) => {
                     contentContainerStyle={{ flexGrow: 1, justifyContent: messages.length ? 'flex-end' : 'center', paddingHorizontal: 13, paddingVertical: 15 }}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
                     ListEmptyComponent={(
                         <View style={{ alignItems: 'center', padding: 30 }}>
                             <FeatherIcon name="message-circle" size={33} color={COLORS.primary} />
@@ -799,7 +820,7 @@ const SingleChat = ({ route, navigation }) => {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    <View style={{ minHeight: 64, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'flex-end' }}>
+                    <View style={{ minHeight: 64, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'flex-end', marginBottom: Platform.OS === 'android' && keyboardVisible ? Math.max(insets.bottom + 12, 32) : 0 }}>
                         <TouchableOpacity disabled={sending || attachments.length >= 5} onPress={chooseAttachments} style={{ height: 45, width: 42, alignItems: 'center', justifyContent: 'center', opacity: sending || attachments.length >= 5 ? 0.4 : 1 }}>
                             <FeatherIcon name="paperclip" size={21} color={colors.text} />
                         </TouchableOpacity>
@@ -834,7 +855,7 @@ const SingleChat = ({ route, navigation }) => {
             </KeyboardAvoidingView>
 
             <Modal transparent visible={offerModalOpen} animationType="fade" onRequestClose={closeOfferModal}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                     <TouchableOpacity activeOpacity={1} disabled={offerLoading} onPress={closeOfferModal} style={{ flex: 1, padding: 20, backgroundColor: 'rgba(15,23,42,.62)', alignItems: 'center', justifyContent: 'center' }}>
                         <TouchableOpacity activeOpacity={1} style={{ width: '100%', maxWidth: 410, borderRadius: 23, backgroundColor: colors.card, padding: 19 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>

@@ -25,6 +25,7 @@ import {
     updateChatState,
 } from '../../api/chats';
 import { formatRelativeTime } from '../../utils/formatters';
+import Header from '../../layout/Header';
 
 const folders = [
     { id: 'all', label: 'All' },
@@ -277,8 +278,17 @@ const Chat = ({ navigation }) => {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+            <Header
+                title="Messages"
+                titleLeft
+                leftIcon="back"
+                backAction={() => (
+                    navigation.canGoBack()
+                        ? navigation.goBack()
+                        : navigation.navigate('Home')
+                )}
+            />
             <View style={[GlobalStyleSheet.container, { paddingBottom: 8 }] }>
-                <Text style={[FONTS.h5, { color: colors.title }]}>Messages</Text>
                 <Text style={[FONTS.fontSm, { color: colors.text, marginTop: 2 }]}>Your buyer and seller conversations</Text>
 
                 <View style={{ marginTop: 14, height: 46, borderRadius: 15, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderColor, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13 }}>

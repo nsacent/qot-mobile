@@ -1,30 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, Image, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Text, TouchableOpacity, View } from 'react-native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { useNavigation, useTheme } from '@react-navigation/native';
-import { COLORS, FONTS, IMAGES } from '../../constants/theme';
-
-const iconsBySlug = {
-    vehicles: IMAGES.cat1,
-    'phones-tablets': IMAGES.cat2,
-    property: IMAGES.cat3,
-    jobs: IMAGES.cat4,
-    agriculture: IMAGES.cat5,
-    electronics: IMAGES.cat6,
-    furniture: IMAGES.cat7,
-    'home-furniture': IMAGES.cat7,
-    fashion: IMAGES.cat8,
-    pets: IMAGES.cat9,
-    'sports-hobbies': IMAGES.cat10,
-    services: IMAGES.cat11,
-    'health-beauty': IMAGES.cat8,
-    'baby-kids': IMAGES.cat9,
-};
-
-export const categoryIcon = (slug) => iconsBySlug[slug] || IMAGES.cat6;
+import { COLORS, FONTS } from '../../constants/theme';
+import CategoryIcon from '../../components/CategoryIcon';
 
 const CategoryList = ({ categories = [] }) => {
-    const { colors, dark } = useTheme();
+    const { colors } = useTheme();
     const navigation = useNavigation();
     const [expandedId, setExpandedId] = useState(null);
 
@@ -33,12 +15,24 @@ const CategoryList = ({ categories = [] }) => {
         [categories, expandedId],
     );
 
+    const categoryItems = useMemo(() => [{
+        id: 'all-categories',
+        name: 'All categories',
+        slug: 'all',
+        isAllCategories: true,
+        listings_count: categories.reduce((total, category) => total + Number(category.listings_count || 0), 0),
+    }, ...categories], [categories]);
+
     const openCategory = (item) => navigation.navigate('Items', {
         cat: item.name,
         categorySlug: item.slug,
     });
 
     const selectParent = (item) => {
+        if (item.isAllCategories) {
+            navigation.navigate('Categories');
+            return;
+        }
         if (!item.children?.length) {
             openCategory(item);
             return;
@@ -51,16 +45,14 @@ const CategoryList = ({ categories = [] }) => {
             <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                data={categories}
+                data={categoryItems}
                 keyExtractor={(item) => String(item.id)}
                 contentContainerStyle={{ paddingLeft: 15, paddingRight: 8 }}
                 renderItem={({ item }) => {
                     const selected = String(item.id) === String(expandedId);
                     return (
                         <TouchableOpacity onPress={() => selectParent(item)} activeOpacity={0.82} style={{ width: 76, alignItems: 'center', marginRight: 5 }}>
-                            <View style={{ height: 54, width: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 17, borderWidth: 1, borderColor: selected ? COLORS.primary : colors.borderColor, backgroundColor: selected ? `${COLORS.primary}12` : dark ? 'rgba(255,255,255,.05)' : colors.card }}>
-                                <Image source={categoryIcon(item.slug)} style={{ height: 33, width: 33, resizeMode: 'contain' }} />
-                            </View>
+                            <CategoryIcon slug={item.slug} selected={selected} size={22} containerSize={54} borderRadius={17} />
                             <Text numberOfLines={2} style={[FONTS.fontXs, FONTS.fontTitle, { color: selected ? COLORS.primary : colors.title, textAlign: 'center', fontSize: 9, lineHeight: 13, marginTop: 5 }]}>{item.name}</Text>
                             <Text style={[FONTS.fontXs, { color: colors.textLight, fontSize: 8, marginTop: 1 }]}>{Number(item.listings_count || 0).toLocaleString()} ads</Text>
                         </TouchableOpacity>
@@ -78,7 +70,8 @@ const CategoryList = ({ categories = [] }) => {
                         {expanded.children.map((child) => (
                             <View key={child.id} style={{ width: '50%', paddingHorizontal: 4, marginBottom: 8 }}>
                                 <TouchableOpacity onPress={() => openCategory(child)} style={{ minHeight: 43, borderRadius: 10, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center' }}>
-                                    <Text numberOfLines={2} style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title, flex: 1, lineHeight: 15 }]}>{child.name}</Text>
+                                    <CategoryIcon slug={child.slug} size={12} containerSize={29} borderRadius={9} />
+                                    <Text numberOfLines={2} style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title, flex: 1, lineHeight: 15, marginLeft: 8 }]}>{child.name}</Text>
                                     <FeatherIcon name="chevron-right" size={14} color={COLORS.primary} />
                                 </TouchableOpacity>
                             </View>

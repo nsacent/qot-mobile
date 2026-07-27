@@ -1,7 +1,9 @@
-node_modules
+node_modules/
 .expo/
 .expo-export-check/
+.git/
 builds/
+doc/
 .DS_Store
 **/.DS_Store
 .env

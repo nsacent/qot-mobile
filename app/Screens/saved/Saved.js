@@ -127,7 +127,16 @@ const Saved = ({ navigation, route }) => {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <Header title="Saved" titleLeft />
+            <Header
+                title="Saved"
+                titleLeft
+                leftIcon="back"
+                backAction={() => (
+                    navigation.canGoBack()
+                        ? navigation.goBack()
+                        : navigation.navigate('Home')
+                )}
+            />
             <View style={[GlobalStyleSheet.container, { paddingTop: 7, paddingBottom: 10 }]}>
                 <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderColor, borderRadius: 13, padding: 4 }}>
                     {[

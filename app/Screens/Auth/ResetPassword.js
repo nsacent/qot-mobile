@@ -166,7 +166,7 @@ const ResetPassword = ({ navigation, route }) => {
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <ScrollView
                     keyboardShouldPersistTaps="handled"

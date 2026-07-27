@@ -15,6 +15,7 @@ import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { COLORS, FONTS } from '../constants/theme';
 import { formatPrice } from '../utils/formatters';
+import { hasPrimaryVerification } from '../utils/verification';
 
 export const DEFAULT_BUYER_MESSAGE = 'Hi, is this ad still available?';
 
@@ -82,7 +83,7 @@ const BuyerContactModal = ({
             action: 'Sign in',
             onPress: onSignIn,
         }
-        : !user.is_verified
+        : !hasPrimaryVerification(user)
             ? {
                 icon: 'shield',
                 title: 'Verify your phone first',
@@ -103,7 +104,7 @@ const BuyerContactModal = ({
             setError('Sign in before contacting this seller.');
             return;
         }
-        if (!user.is_verified) {
+        if (!hasPrimaryVerification(user)) {
             setError('Verify your phone number before contacting this seller.');
             return;
         }
@@ -143,7 +144,7 @@ const BuyerContactModal = ({
             statusBarTranslucent
             onRequestClose={close}
         >
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <Pressable
                     onPress={close}
                     style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 28, backgroundColor: 'rgba(15,23,42,.7)', alignItems: 'center', justifyContent: 'center' }}

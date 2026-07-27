@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Linking } from "react-native";
+import { Linking, StatusBar } from "react-native";
 import * as Notifications from "expo-notifications";
-import { 
-  NavigationContainer, 
+import {
+  NavigationContainer,
   DefaultTheme as NavigationDefaultTheme,
   DarkTheme as NavigationDarkTheme
 } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import StackNavigator from "./StackNavigator";
 import themeContext from "../constants/themeContext";
 import { COLORS } from "../constants/theme";
@@ -91,9 +92,16 @@ const Routes = () => {
 
   return (
     <themeContext.Provider value={authContext}>
-      <NavigationContainer theme={theme} linking={linking}>
-        <StackNavigator/>
-      </NavigationContainer>
+      <StatusBar
+        translucent={false}
+        backgroundColor={theme.colors.card}
+        barStyle={isDarkTheme ? 'light-content' : 'dark-content'}
+      />
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: theme.colors.card }}>
+        <NavigationContainer theme={theme} linking={linking}>
+          <StackNavigator/>
+        </NavigationContainer>
+      </SafeAreaView>
     </themeContext.Provider>
   );
   

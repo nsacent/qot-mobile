@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -16,7 +16,7 @@ import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { IMAGES, FONTS, COLORS } from '../../constants/theme';
 import CategoryList from './CategoryList';
 import LatestAds from './LatestAds';
-import { getCategories, getHome } from '../../api/marketplace';
+import { getCategories, getHome, getListingsPage } from '../../api/marketplace';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -33,6 +33,9 @@ const emptyHome = {
     popular_categories: [],
 };
 
+const HOME_AD_PAGE_SIZE = 20;
+const HOME_AD_LIMIT = 200;
+
 const HomeScreen = ({ navigation }) => {
     const { colors } = useTheme();
     const { unreadCount, refreshNotifications } = useNotifications();
@@ -44,16 +47,32 @@ const HomeScreen = ({ navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState('');
     const [recentSearches, setRecentSearches] = useState([]);
+    const [latestAds, setLatestAds] = useState([]);
+    const [loadingMoreAds, setLoadingMoreAds] = useState(false);
+    const [hasMoreAds, setHasMoreAds] = useState(true);
+    const [loadMoreError, setLoadMoreError] = useState('');
+    const latestAdsRef = useRef([]);
+    const latestPageRef = useRef(1);
+    const loadingMoreAdsRef = useRef(false);
+    const hasMoreAdsRef = useRef(true);
 
     const loadHome = useCallback(async (refresh = false) => {
         refresh ? setRefreshing(true) : setLoading(true);
         setError('');
         try {
-            const [homeData, categoryData] = await Promise.all([
+            const [homeData, categoryData, latestPage] = await Promise.all([
                 getHome({ force: refresh }),
                 getCategories({ force: refresh }),
+                getListingsPage({ sort: 'newest', page: 1, page_size: HOME_AD_PAGE_SIZE, force: refresh }),
             ]);
             setHome(homeData);
+            const firstLatestAds = latestPage.results.slice(0, HOME_AD_LIMIT);
+            latestAdsRef.current = firstLatestAds;
+            latestPageRef.current = 1;
+            hasMoreAdsRef.current = Boolean(latestPage.next) && firstLatestAds.length < HOME_AD_LIMIT;
+            setLatestAds(firstLatestAds);
+            setHasMoreAds(hasMoreAdsRef.current);
+            setLoadMoreError('');
             const popularOrder = new Map((homeData.popular_categories || []).map((category, index) => [category.id, index]));
             setCategories([...categoryData].sort((a, b) => (
                 (popularOrder.get(a.id) ?? 999) - (popularOrder.get(b.id) ?? 999)
@@ -65,6 +84,43 @@ const HomeScreen = ({ navigation }) => {
             setRefreshing(false);
         }
     }, []);
+
+    const loadMoreLatestAds = useCallback(async () => {
+        if (loadingMoreAdsRef.current || !hasMoreAdsRef.current || latestAdsRef.current.length >= HOME_AD_LIMIT) return;
+
+        loadingMoreAdsRef.current = true;
+        setLoadingMoreAds(true);
+        setLoadMoreError('');
+        try {
+            const nextPage = latestPageRef.current + 1;
+            const result = await getListingsPage({
+                sort: 'newest',
+                page: nextPage,
+                page_size: HOME_AD_PAGE_SIZE,
+            });
+            const knownIds = new Set(latestAdsRef.current.map((item) => String(item.id)));
+            const newAds = result.results.filter((item) => !knownIds.has(String(item.id)));
+            const merged = [...latestAdsRef.current, ...newAds].slice(0, HOME_AD_LIMIT);
+
+            latestAdsRef.current = merged;
+            latestPageRef.current = nextPage;
+            hasMoreAdsRef.current = Boolean(result.next) && merged.length < HOME_AD_LIMIT;
+            setLatestAds(merged);
+            setHasMoreAds(hasMoreAdsRef.current);
+        } catch (requestError) {
+            setLoadMoreError(requestError.message || 'Could not load more ads.');
+        } finally {
+            loadingMoreAdsRef.current = false;
+            setLoadingMoreAds(false);
+        }
+    }, []);
+
+    const handleHomeScroll = useCallback(({ nativeEvent }) => {
+        const distanceFromBottom = nativeEvent.contentSize.height
+            - nativeEvent.layoutMeasurement.height
+            - nativeEvent.contentOffset.y;
+        if (distanceFromBottom < 700) loadMoreLatestAds();
+    }, [loadMoreLatestAds]);
 
     useEffect(() => {
         loadHome();
@@ -122,8 +178,8 @@ const HomeScreen = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <View style={[GlobalStyleSheet.container, { paddingBottom: 5 }] }>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.card }}>
+            <View style={[GlobalStyleSheet.container, { paddingBottom: 5, backgroundColor: colors.card }] }>
                 <View style={{ flexDirection: 'row' }}>
                     <View style={{ flex: 1 }}>
                         <SearchBar
@@ -157,12 +213,15 @@ const HomeScreen = ({ navigation }) => {
             </View>
 
             {loading ? (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={[FONTS.font, { color: colors.text, marginTop: 12 }]}>Loading QOT Uganda...</Text>
+                    <Text style={[FONTS.font, { color: colors.text, marginTop: 12 }]}>Loading QOT...</Text>
                 </View>
             ) : (
                 <ScrollView
+                    style={{ backgroundColor: colors.background }}
+                    onScroll={handleHomeScroll}
+                    scrollEventThrottle={200}
                     refreshControl={(
                         <RefreshControl
                             refreshing={refreshing}
@@ -257,22 +316,7 @@ const HomeScreen = ({ navigation }) => {
                             </TouchableOpacity>
                         </View>
 
-                        <TouchableOpacity
-                            onPress={() => navigation.navigate('Sellers')}
-                            activeOpacity={0.85}
-                            style={{ minHeight: 66, borderRadius: 16, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.card, padding: 12, marginTop: 18, flexDirection: 'row', alignItems: 'center' }}
-                        >
-                            <View style={{ height: 42, width: 42, borderRadius: 14, backgroundColor: '#EAF8F0', alignItems: 'center', justifyContent: 'center' }}>
-                                <FeatherIcon name="users" size={19} color="#18864B" />
-                            </View>
-                            <View style={{ flex: 1, marginLeft: 10 }}>
-                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>Trusted sellers</Text>
-                                <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }]}>Browse verified sellers rated 3.5 and above</Text>
-                            </View>
-                            <FeatherIcon name="chevron-right" size={19} color={colors.textLight} />
-                        </TouchableOpacity>
-
-                        <View style={{ marginHorizontal: -15, marginTop: 20, flex: 1 }}>
+                        <View style={{ marginHorizontal: -15, marginTop: 18, flex: 1 }}>
                             <View
                                 style={{
                                     backgroundColor: colors.card,
@@ -291,12 +335,26 @@ const HomeScreen = ({ navigation }) => {
                                 )}
 
                                 <Text style={[FONTS.h6, { color: colors.title, marginTop: 4 }]}>Latest Ads</Text>
-                                <LatestAds items={home.latest_listings || []} />
+                                <LatestAds items={latestAds} />
 
-                                {!home.latest_listings?.length && !error && (
+                                {!latestAds.length && !error && (
                                     <Text style={[FONTS.font, { color: colors.text, textAlign: 'center', paddingVertical: 30 }] }>
                                         No active listings yet.
                                     </Text>
+                                )}
+                                {loadingMoreAds && (
+                                    <View style={{ alignItems: 'center', paddingVertical: 18 }}>
+                                        <ActivityIndicator size="small" color={COLORS.primary} />
+                                        <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 7 }]}>Loading more ads…</Text>
+                                    </View>
+                                )}
+                                {Boolean(loadMoreError) && (
+                                    <TouchableOpacity onPress={loadMoreLatestAds} style={{ alignSelf: 'center', borderRadius: 18, borderWidth: 1, borderColor: `${COLORS.primary}45`, backgroundColor: `${COLORS.primary}0D`, paddingHorizontal: 15, paddingVertical: 9, marginVertical: 10 }}>
+                                        <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.primary }]}>{loadMoreError} Tap to retry.</Text>
+                                    </TouchableOpacity>
+                                )}
+                                {!hasMoreAds && latestAds.length > HOME_AD_PAGE_SIZE && (
+                                    <Text style={[FONTS.fontXs, { color: colors.textLight, textAlign: 'center', paddingVertical: 14 }]}>Showing the latest {latestAds.length} ads</Text>
                                 )}
                             </View>
                         </View>

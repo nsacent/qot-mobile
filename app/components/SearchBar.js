@@ -8,7 +8,7 @@ const SearchBar = ({
     value,
     onChangeText,
     onSubmitEditing,
-    placeholder = 'Search QOT Uganda...',
+    placeholder = 'Search QOT...',
 }) => {
     const theme = useTheme();
     const { colors } = theme;

@@ -53,6 +53,14 @@ const Editprofile = ({ navigation }) => {
             }
             : null,
     );
+    const [selectedArea, setSelectedArea] = useState(
+        user?.profile?.default_area
+            ? {
+                id: user.profile.default_area,
+                name: user.profile.default_area_name,
+            }
+            : null,
+    );
     const [timezone, setTimezone] = useState(user?.profile?.timezone || 'Africa/Kampala');
     const [avatar, setAvatar] = useState(null);
     const [cover, setCover] = useState(null);
@@ -72,10 +80,56 @@ const Editprofile = ({ navigation }) => {
         return () => { active = false; };
     }, []);
 
-    const locationGroups = useMemo(() => regions.map((region) => ({
-        title: region.name,
-        items: region.cities || [],
-    })), [regions]);
+    const locationGroups = useMemo(() => regions.flatMap((region) => {
+        const cities = [];
+        const areas = [];
+        for (const city of region.cities || []) {
+            if ((city.areas || []).length) {
+                areas.push({
+                    title: `${city.name}, ${region.name}`,
+                    items: city.areas.map((area) => ({
+                        ...area,
+                        id: `area-${area.id}`,
+                        area_id: area.id,
+                        city_id: city.id,
+                        city_name: city.name,
+                        region_name: region.name,
+                        selection_type: 'area',
+                    })),
+                });
+            } else {
+                cities.push({
+                    ...city,
+                    id: `city-${city.id}`,
+                    city_id: city.id,
+                    region_name: city.region_name || region.name,
+                    selection_type: 'city',
+                });
+            }
+        }
+        return [
+            ...(cities.length ? [{ title: region.name, items: cities }] : []),
+            ...areas,
+        ];
+    }), [regions]);
+    const selectedLocationId = selectedArea ? `area-${selectedArea.id}` : selectedCity ? `city-${selectedCity.id}` : null;
+    const selectedLocationLabel = selectedArea
+        ? `${selectedArea.name}, ${selectedCity?.name || ''}`
+        : selectedCity
+            ? `${selectedCity.name}${selectedCity.region_name ? `, ${selectedCity.region_name}` : ''}`
+            : '';
+
+    const chooseLocation = (item) => {
+        if (item.selection_type === 'area') {
+            const city = regions.flatMap((region) => region.cities || []).find((candidate) => String(candidate.id) === String(item.city_id));
+            setSelectedCity(city || { id: item.city_id, name: item.city_name, region_name: item.region_name });
+            setSelectedArea({ id: item.area_id, name: item.name });
+        } else {
+            const city = regions.flatMap((region) => region.cities || []).find((candidate) => String(candidate.id) === String(item.city_id));
+            setSelectedCity(city || { ...item, id: item.city_id });
+            setSelectedArea(null);
+        }
+    };
 
     const inputStyle = {
         minHeight: 50,
@@ -133,6 +187,7 @@ const Editprofile = ({ navigation }) => {
             formData.append('bio', bio.trim());
             formData.append('timezone', timezone);
             if (selectedCity?.id) formData.append('default_city', String(selectedCity.id));
+            if (selectedArea?.id) formData.append('default_area', String(selectedArea.id));
 
             if (avatar) {
                 formData.append('avatar', {
@@ -163,8 +218,8 @@ const Editprofile = ({ navigation }) => {
     return (
         <SafeAreaView style={{ backgroundColor: colors.background, flex: 1 }}>
             <Header title="Edit profile" leftIcon="back" titleLeft />
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
                     <View style={[GlobalStyleSheet.container, { paddingBottom: 35 }]}>
                         <View style={{ height: 150, borderRadius: 16, overflow: 'hidden', backgroundColor: '#FFF3E8', marginTop: 8 }}>
                             {(cover?.uri || user?.profile?.cover_photo) ? (
@@ -254,7 +309,7 @@ const Editprofile = ({ navigation }) => {
                         >
                             {loadingLocations ? <ActivityIndicator size="small" color={COLORS.primary} /> : <FeatherIcon name="map-pin" size={17} color={COLORS.primary} />}
                             <Text style={[FONTS.font, { color: selectedCity ? colors.title : colors.textLight, flex: 1, marginLeft: 9 }]}>
-                                {selectedCity ? `${selectedCity.name}, ${selectedCity.region_name}` : 'Choose a city or district'}
+                                {selectedLocationLabel || 'Choose an area, city or district'}
                             </Text>
                             <FeatherIcon name="chevron-right" size={19} color={colors.text} />
                         </TouchableOpacity>
@@ -282,10 +337,10 @@ const Editprofile = ({ navigation }) => {
                 visible={locationModal}
                 title="Choose your default location"
                 groups={locationGroups}
-                selectedId={selectedCity?.id}
-                onSelect={setSelectedCity}
+                selectedId={selectedLocationId}
+                onSelect={chooseLocation}
                 onClose={() => setLocationModal(false)}
-                searchPlaceholder="Search all cities and districts"
+                searchPlaceholder="Search areas, cities and districts"
             />
             <MarketplaceSelectionModal
                 visible={timezoneModal}

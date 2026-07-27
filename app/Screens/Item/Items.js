@@ -54,7 +54,7 @@ const emptyFilters = () => ({
 });
 
 const standardFilterKeys = new Set([
-    'category', 'city', 'region', 'min_price', 'max_price', 'condition',
+    'category', 'city', 'area', 'region', 'min_price', 'max_price', 'condition',
     'is_negotiable', 'negotiable', 'verified_seller', 'posted_within',
     'search', 'q', 'sort', 'page', 'page_size',
 ]);
@@ -89,6 +89,7 @@ const Items = ({ route, navigation }) => {
         categorySlug ? { name: cat, slug: categorySlug } : null,
     );
     const [selectedCity, setSelectedCity] = useState(null);
+    const [selectedArea, setSelectedArea] = useState(null);
     const [categoryFilters, setCategoryFilters] = useState([]);
     const [filters, setFilters] = useState(() => restoredFilters(savedFilters));
     const [draftFilters, setDraftFilters] = useState(() => restoredFilters(savedFilters));
@@ -121,7 +122,15 @@ const Items = ({ route, navigation }) => {
                         || item.slug === savedFilters.city
                         || item.name === savedFilters.city
                     ));
-                    if (city) setSelectedCity(city);
+                    if (city) {
+                        setSelectedCity(city);
+                        const area = (city.areas || []).find((item) => (
+                            String(item.id) === String(savedFilters.area)
+                            || item.slug === savedFilters.area
+                            || item.name === savedFilters.area
+                        ));
+                        setSelectedArea(area || null);
+                    }
                 }
                 if (categorySlug) {
                     const match = flattenCategories(categoryData).find((item) => item.slug === categorySlug);
@@ -145,6 +154,7 @@ const Items = ({ route, navigation }) => {
         search: activeQuery,
         sort,
         city: selectedCity?.slug || selectedCity?.id,
+        area: selectedArea?.slug || selectedArea?.id,
         min_price: filters.minPrice,
         max_price: filters.maxPrice,
         condition: filters.condition,
@@ -152,7 +162,7 @@ const Items = ({ route, navigation }) => {
         verified_seller: filters.verified ? true : '',
         posted_within: filters.postedWithin,
         ...filters.fields,
-    }), [activeQuery, filters, locationMode, selectedCategory?.slug, selectedCity, sort]);
+    }), [activeQuery, filters, locationMode, selectedArea, selectedCategory?.slug, selectedCity, sort]);
 
     const loadListings = useCallback(async ({ requestedPage = 1, append = false, refresh = false } = {}) => {
         if (append) setLoadingMore(true);
@@ -184,6 +194,7 @@ const Items = ({ route, navigation }) => {
         try {
             const location = await getStoredBuyerLocation() || await requestBuyerLocation();
             setSelectedCity(null);
+            setSelectedArea(null);
             setBuyerLocation(location);
             setLocationMode(true);
         } catch (locationError) {
@@ -213,6 +224,7 @@ const Items = ({ route, navigation }) => {
         category: selectedCategory?.slug,
         search: activeQuery,
         city: selectedCity?.slug || selectedCity?.id,
+        area: selectedArea?.slug || selectedArea?.id,
         min_price: draftFilters.minPrice,
         max_price: draftFilters.maxPrice,
         condition: draftFilters.condition,
@@ -220,7 +232,7 @@ const Items = ({ route, navigation }) => {
         verified_seller: draftFilters.verified ? true : '',
         posted_within: draftFilters.postedWithin,
         ...draftFilters.fields,
-    }), [activeQuery, draftFilters, selectedCategory?.slug, selectedCity]);
+    }), [activeQuery, draftFilters, selectedArea, selectedCategory?.slug, selectedCity]);
 
     useEffect(() => {
         if (!filterModal) return undefined;
@@ -239,9 +251,42 @@ const Items = ({ route, navigation }) => {
     ], [categories]);
 
     const locationGroups = useMemo(() => [
-        { title: 'Anywhere', items: [{ id: 'all', name: 'All Uganda' }] },
-        ...regions.map((region) => ({ title: region.name, items: region.cities || [] })),
+        { title: 'Anywhere', items: [{ id: 'all', name: 'All Uganda', selection_type: 'all' }] },
+        ...regions.flatMap((region) => {
+            const cities = [];
+            const areas = [];
+            for (const city of region.cities || []) {
+                if ((city.areas || []).length) {
+                    areas.push({
+                        title: `${city.name}, ${region.name}`,
+                        items: city.areas.map((area) => ({
+                            ...area,
+                            id: `area-${area.id}`,
+                            area_id: area.id,
+                            city_id: city.id,
+                            city_name: city.name,
+                            region_name: region.name,
+                            selection_type: 'area',
+                        })),
+                    });
+                } else {
+                    cities.push({
+                        ...city,
+                        id: `city-${city.id}`,
+                        city_id: city.id,
+                        region_name: city.region_name || region.name,
+                        selection_type: 'city',
+                    });
+                }
+            }
+            return [
+                ...(cities.length ? [{ title: region.name, items: cities }] : []),
+                ...areas,
+            ];
+        }),
     ], [regions]);
+    const selectedLocationId = selectedArea ? `area-${selectedArea.id}` : selectedCity ? `city-${selectedCity.id}` : 'all';
+    const selectedLocationName = selectedArea?.name || selectedCity?.name || '';
 
     const activeFilterCount = useMemo(() => [
         filters.minPrice || filters.maxPrice,
@@ -255,10 +300,10 @@ const Items = ({ route, navigation }) => {
     const submitSearch = async () => {
         const query = search.trim();
         setActiveQuery(query);
-        if (!query && !selectedCategory && !selectedCity) return;
+        if (!query && !selectedCategory && !selectedCity && !selectedArea) return;
 
         const historyFilters = Object.fromEntries(Object.entries(requestParams).filter(([key, value]) => (
-            !['search', 'category', 'city'].includes(key)
+            !['search', 'category', 'city', 'area'].includes(key)
             && value !== ''
             && value !== undefined
             && value !== null
@@ -270,6 +315,9 @@ const Items = ({ route, navigation }) => {
             cityId: selectedCity?.id,
             citySlug: selectedCity?.slug,
             cityName: selectedCity?.name,
+            areaId: selectedArea?.id,
+            areaSlug: selectedArea?.slug,
+            areaName: selectedArea?.name,
             filters: historyFilters,
         });
     };
@@ -278,6 +326,24 @@ const Items = ({ route, navigation }) => {
         setSelectedCategory(item.id === 'all' ? null : item);
         setFilters((current) => ({ ...current, fields: {} }));
         setNotice('');
+    };
+
+    const chooseLocation = (item) => {
+        disableNearby();
+        if (item.selection_type === 'all' || item.id === 'all') {
+            setSelectedCity(null);
+            setSelectedArea(null);
+            return;
+        }
+        if (item.selection_type === 'area') {
+            const city = regions.flatMap((region) => region.cities || []).find((candidate) => String(candidate.id) === String(item.city_id));
+            setSelectedCity(city || { id: item.city_id, name: item.city_name, region_name: item.region_name });
+            setSelectedArea({ id: item.area_id, name: item.name, slug: item.slug });
+            return;
+        }
+        const city = regions.flatMap((region) => region.cities || []).find((candidate) => String(candidate.id) === String(item.city_id));
+        setSelectedCity(city || { ...item, id: item.city_id });
+        setSelectedArea(null);
     };
 
     const openFilters = () => {
@@ -302,7 +368,7 @@ const Items = ({ route, navigation }) => {
             const filterPayload = Object.fromEntries(Object.entries(requestParams).filter(([, value]) => value !== '' && value !== undefined && value !== null && value !== 'newest'));
             delete filterPayload.search;
             delete filterPayload.sort;
-            const nameParts = [activeQuery || selectedCategory?.name || 'All ads', selectedCity?.name].filter(Boolean);
+            const nameParts = [activeQuery || selectedCategory?.name || 'All ads', selectedArea?.name || selectedCity?.name].filter(Boolean);
             await createSavedSearch(nameParts.join(' · '), activeQuery, filterPayload);
             setNotice('Search saved. QOT will notify you about new matching ads.');
         } catch (requestError) {
@@ -413,7 +479,7 @@ const Items = ({ route, navigation }) => {
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 13 }}>
                     <View style={{ flex: 1 }}>
-                        <Text numberOfLines={1} style={[FONTS.h6, { color: colors.title }]}>{locationMode ? 'Ads near you' : selectedCategory?.name || (activeQuery ? `Results for “${activeQuery}”` : selectedCity?.name ? `Ads in ${selectedCity.name}` : 'Browse all ads')}</Text>
+                        <Text numberOfLines={1} style={[FONTS.h6, { color: colors.title }]}>{locationMode ? 'Ads near you' : selectedCategory?.name || (activeQuery ? `Results for “${activeQuery}”` : selectedLocationName ? `Ads in ${selectedLocationName}` : 'Browse all ads')}</Text>
                         <Text style={[FONTS.fontXs, { color: colors.text }]}>{locating ? 'Finding your location...' : loading ? 'Finding ads...' : locationMode ? `${total.toLocaleString()} ads · nearest first` : `${total.toLocaleString()} ${total === 1 ? 'ad' : 'ads'} found`}</Text>
                     </View>
                     <TouchableOpacity disabled={savingSearch} onPress={saveSearch} style={{ height: 39, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' }}>{savingSearch ? <ActivityIndicator size="small" color={COLORS.primary} /> : <FeatherIcon name="bookmark" size={20} color={COLORS.primary} />}</TouchableOpacity>
@@ -424,7 +490,7 @@ const Items = ({ route, navigation }) => {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingTop: 12, paddingBottom: 5 }}>
                     <Chip label={locating ? 'Locating…' : 'Near me'} selected={locationMode} onPress={locationMode ? disableNearby : enableNearby} />
                     <Chip label={selectedCategory?.name || 'Category'} selected={Boolean(selectedCategory)} onPress={() => setCategoryModal(true)} />
-                    <Chip label={selectedCity?.name || 'All Uganda'} selected={Boolean(selectedCity)} onPress={() => setLocationModal(true)} />
+                    <Chip label={selectedLocationName || 'All Uganda'} selected={Boolean(selectedCity || selectedArea)} onPress={() => setLocationModal(true)} />
                     <Chip label={`Filters${activeFilterCount ? ` · ${activeFilterCount}` : ''}`} selected={Boolean(activeFilterCount)} onPress={openFilters} />
                     {!locationMode && sortOptions.map((option) => <Chip key={option.value} label={option.label} selected={sort === option.value} onPress={() => setSort(option.value)} />)}
                 </ScrollView>
@@ -455,7 +521,7 @@ const Items = ({ route, navigation }) => {
             )}
 
             <MarketplaceSelectionModal visible={categoryModal} title="Choose a category" groups={categoryGroups} selectedId={selectedCategory?.id || 'all'} onSelect={chooseCategory} onClose={() => setCategoryModal(false)} searchPlaceholder="Search categories" />
-            <MarketplaceSelectionModal visible={locationModal} title="Choose a location" groups={locationGroups} selectedId={selectedCity?.id || 'all'} onSelect={(item) => { disableNearby(); setSelectedCity(item.id === 'all' ? null : item); }} onClose={() => setLocationModal(false)} searchPlaceholder="Search all cities and districts" />
+            <MarketplaceSelectionModal visible={locationModal} title="Choose a location" groups={locationGroups} selectedId={selectedLocationId} onSelect={chooseLocation} onClose={() => setLocationModal(false)} searchPlaceholder="Search areas, cities and districts" />
             {renderFilterModal()}
         </SafeAreaView>
     );

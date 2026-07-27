@@ -1,23 +1,32 @@
 import { apiRequest } from './client';
+import { ugandanPhoneE164 } from '../utils/phoneNumbers';
 
-const normalizeUgandanPhone = (value) => {
-    const trimmed = String(value || '').trim();
-    const digits = trimmed.replace(/\D/g, '');
-
-    if (!digits || /[a-z@]/i.test(trimmed)) return trimmed;
-    if (digits.startsWith('256')) return `+${digits}`;
-    if (digits.startsWith('0')) return `+256${digits.slice(1)}`;
-    if (digits.length === 9 && digits.startsWith('7')) return `+256${digits}`;
-    return trimmed;
-};
-
-export const login = ({ identifier, password, keepSignedIn = true }) => (
+export const login = ({ identifier, password }) => (
     apiRequest('/auth/login/', {
         method: 'POST',
         body: {
-            identifier: normalizeUgandanPhone(identifier),
+            identifier: String(identifier).includes('@')
+                ? String(identifier).trim().toLowerCase()
+                : ugandanPhoneE164(identifier),
             password,
-            keep_signed_in: keepSignedIn,
+            keep_signed_in: true,
+        },
+    })
+);
+
+export const requestPhoneOTP = (phone) => (
+    apiRequest('/auth/otp/send/', {
+        method: 'POST',
+        body: { phone: ugandanPhoneE164(phone) },
+    })
+);
+
+export const confirmPhoneOTP = ({ phone, code }) => (
+    apiRequest('/auth/otp/confirm/', {
+        method: 'POST',
+        body: {
+            phone: ugandanPhoneE164(phone),
+            code: String(code || '').replace(/\D/g, '').slice(0, 6),
         },
     })
 );
@@ -26,7 +35,7 @@ export const register = ({ phone, email, fullName, password, passwordConfirm }) 
     apiRequest('/auth/register/', {
         method: 'POST',
         body: {
-            phone: normalizeUgandanPhone(phone),
+            phone: ugandanPhoneE164(phone),
             email: email.trim() || null,
             full_name: fullName.trim(),
             password,
@@ -35,22 +44,22 @@ export const register = ({ phone, email, fullName, password, passwordConfirm }) 
     })
 );
 
-export const loginWithFacebook = ({ accessToken, keepSignedIn = true }) => (
+export const loginWithFacebook = ({ accessToken }) => (
     apiRequest('/auth/facebook/', {
         method: 'POST',
         body: {
             access_token: accessToken,
-            keep_signed_in: keepSignedIn,
+            keep_signed_in: true,
         },
     })
 );
 
-export const loginWithGoogle = ({ credential, keepSignedIn = true }) => (
+export const loginWithGoogle = ({ credential }) => (
     apiRequest('/auth/google/', {
         method: 'POST',
         body: {
             credential,
-            keep_signed_in: keepSignedIn,
+            keep_signed_in: true,
         },
     })
 );

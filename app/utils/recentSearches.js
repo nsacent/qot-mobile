@@ -10,6 +10,7 @@ const searchKey = (item = {}) => [
     cleanText(item.query).toLowerCase(),
     cleanText(item.categorySlug).toLowerCase(),
     cleanText(item.cityId || item.citySlug).toLowerCase(),
+    cleanText(item.areaId || item.areaSlug).toLowerCase(),
 ].join('|');
 
 const normaliseSearch = (search = {}) => ({
@@ -20,6 +21,9 @@ const normaliseSearch = (search = {}) => ({
     cityId: search.cityId || '',
     citySlug: cleanText(search.citySlug),
     cityName: cleanText(search.cityName),
+    areaId: search.areaId || '',
+    areaSlug: cleanText(search.areaSlug),
+    areaName: cleanText(search.areaName),
     filters: search.filters && typeof search.filters === 'object' ? search.filters : {},
     searchedAt: search.searchedAt || new Date().toISOString(),
 });
@@ -34,7 +38,7 @@ export const getRecentSearches = async () => {
             await AsyncStorage.removeItem(LEGACY_STORAGE_KEY);
         }
         return Array.isArray(searches)
-            ? searches.filter((item) => item && (item.query || item.categorySlug || item.cityId || item.citySlug))
+            ? searches.filter((item) => item && (item.query || item.categorySlug || item.cityId || item.citySlug || item.areaId || item.areaSlug))
             : [];
     } catch {
         return [];
@@ -43,7 +47,7 @@ export const getRecentSearches = async () => {
 
 export const recordRecentSearch = async (search) => {
     const nextSearch = normaliseSearch(search);
-    if (!nextSearch.query && !nextSearch.categorySlug && !nextSearch.cityId && !nextSearch.citySlug) return getRecentSearches();
+    if (!nextSearch.query && !nextSearch.categorySlug && !nextSearch.cityId && !nextSearch.citySlug && !nextSearch.areaId && !nextSearch.areaSlug) return getRecentSearches();
 
     const searches = await getRecentSearches();
     const key = searchKey(nextSearch);
@@ -67,6 +71,7 @@ export const clearRecentSearches = async () => {
 export const recentSearchLabel = (search) => (
     search?.query
     || search?.categoryName
+    || search?.areaName
     || search?.cityName
     || 'All ads'
 );

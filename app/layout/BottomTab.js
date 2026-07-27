@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, Text, TouchableOpacity, View } from 'react-native';
+import { Keyboard, Platform, Text, TouchableOpacity, View } from 'react-native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { COLORS, FONTS } from '../constants/theme';
 import { useTheme } from '@react-navigation/native';
@@ -15,6 +15,23 @@ const BottomTab = ({ state, descriptors, navigation }) => {
     const { colors } = theme;
     const insets = useSafeAreaInsets();
     const [unreadMessages, setUnreadMessages] = useState(0);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        const showSubscription = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+            () => setKeyboardVisible(true),
+        );
+        const hideSubscription = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+            () => setKeyboardVisible(false),
+        );
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
 
     useEffect(() => {
         let active = true;
@@ -33,6 +50,8 @@ const BottomTab = ({ state, descriptors, navigation }) => {
             clearInterval(timer);
         };
     }, [state.index]);
+
+    if (keyboardVisible) return null;
 
     return (
         <View

@@ -38,6 +38,7 @@ import Tabs from "../Screens/Components/Tabs";
 import Tables from "../Screens/Components/Tables";
 import Toggles from "../Screens/Components/Toggles";
 import SingleChat from "../Screens/chat/SingleChat";
+import Chat from "../Screens/chat/Chat";
 import Call from "../Screens/chat/Call";
 import Sell from "../Screens/sell/Sell";
 import Location from "../Screens/sell/Sellfrom/Location";
@@ -134,6 +135,7 @@ const StackNavigator = () => {
         <StackComponent.Screen name={"Tables"} component={Tables} />
         <StackComponent.Screen name={"Toggles"} component={Toggles} />
         <StackComponent.Screen name={"SingleChat"} component={SingleChat} />
+        <StackComponent.Screen name={"AccountMessages"} component={Chat} />
         <StackComponent.Screen name={"Call"} component={Call} />
         <StackComponent.Screen name={"Sell"} component={Sell} />
         <StackComponent.Screen name={"MyAds"} component={Myads} />

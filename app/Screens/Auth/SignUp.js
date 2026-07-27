@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import {
     Image,
+    KeyboardAvoidingView,
+    Platform,
     SafeAreaView,
     ScrollView,
     Text,
@@ -14,9 +16,11 @@ import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
 import FacebookSignInButton from '../../components/FacebookSignInButton';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
+import UgandanPhoneInput from '../../components/UgandanPhoneInput';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
+import { isValidUgandanMobile } from '../../utils/phoneNumbers';
 
 const SignUp = ({ navigation }) => {
     const theme = useTheme();
@@ -41,6 +45,10 @@ const SignUp = ({ navigation }) => {
     const handleSignUp = async () => {
         if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim() || !form.password) {
             setError('Full name, phone number, email, and password are required.');
+            return;
+        }
+        if (!isValidUgandanMobile(form.phone)) {
+            setError('Enter a valid Ugandan mobile number beginning with +2567.');
             return;
         }
         if (form.password.length < 8) {
@@ -87,15 +95,18 @@ const SignUp = ({ navigation }) => {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <ScrollView
                 contentContainerStyle={{ flexGrow: 1 }}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
             >
                 <View style={{ ...GlobalStyleSheet.container, flex: 1 }}>
                     <View style={{ marginBottom: 24, alignItems: 'center', marginTop: 24 }}>
                         <Image
-                            style={{ height: 45, width: 150, resizeMode: 'contain', marginBottom: 16 }}
-                            source={theme.dark ? IMAGES.logowhite : IMAGES.logo}
+                            accessibilityLabel="QOT"
+                            style={{ height: 54, width: 160, resizeMode: 'contain', marginBottom: 16 }}
+                            source={IMAGES.qotLogo}
                         />
                         <Text style={{ ...FONTS.h3, marginBottom: 6, color: colors.title }}>
                             Create your QOT account
@@ -113,8 +124,6 @@ const SignUp = ({ navigation }) => {
 
                     {[
                         ['fullName', 'Full name', 'Your full name', 'default'],
-                        ['phone', 'Ugandan phone number', 'e.g. 0700 000 001', 'phone-pad'],
-                        ['email', 'Email address', 'you@example.com', 'email-address'],
                     ].map(([field, label, placeholder, keyboardType]) => (
                         <View key={field} style={GlobalStyleSheet.inputGroup}>
                             <Text style={[GlobalStyleSheet.label, { color: colors.title }]}>{label}</Text>
@@ -130,6 +139,26 @@ const SignUp = ({ navigation }) => {
                             />
                         </View>
                     ))}
+
+                    <View style={GlobalStyleSheet.inputGroup}>
+                        <Text style={[GlobalStyleSheet.label, { color: colors.title }]}>Ugandan phone number</Text>
+                        <UgandanPhoneInput value={form.phone} onChangeText={setField('phone')} returnKeyType="next" />
+                        <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 6 }]}>Only +2567 mobile numbers are accepted.</Text>
+                    </View>
+
+                    <View style={GlobalStyleSheet.inputGroup}>
+                        <Text style={[GlobalStyleSheet.label, { color: colors.title }]}>Email address</Text>
+                        <TextInput
+                            style={[GlobalStyleSheet.shadow2, inputStyle]}
+                            value={form.email}
+                            onChangeText={setField('email')}
+                            placeholder="you@example.com"
+                            placeholderTextColor={colors.textLight}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                    </View>
 
                     {[
                         ['password', 'Password'],
@@ -195,7 +224,7 @@ const SignUp = ({ navigation }) => {
                     <GoogleSignInButton navigation={navigation} mode="sign-up" />
                     <FacebookSignInButton navigation={navigation} mode="sign-up" />
                     <Text style={[FONTS.fontXs, { color: colors.text, textAlign: 'center', lineHeight: 17, marginTop: 10 }] }>
-                        By continuing with Google or Facebook, you agree to QOT Uganda's Terms and Privacy Policy.
+                        By continuing with Google or Facebook, you agree to QOT's Terms and Privacy Policy.
                     </Text>
 
                     <View style={{ flexDirection: 'row', marginTop: 18, marginBottom: 24, justifyContent: 'center' }}>
@@ -208,6 +237,7 @@ const SignUp = ({ navigation }) => {
                     </View>
                 </View>
             </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };

@@ -15,6 +15,7 @@ import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { reportListing } from '../api/marketplace';
 import { COLORS, FONTS } from '../constants/theme';
+import { hasPrimaryVerification } from '../utils/verification';
 
 export const REPORT_AD_REASONS = [
     { value: 'scam', label: 'Scam or fraud', icon: 'alert-octagon' },
@@ -106,7 +107,7 @@ const ReportAdModal = ({
             action: 'Sign in',
             onPress: onSignIn,
         }
-        : !user.is_verified
+        : !hasPrimaryVerification(user)
             ? {
                 icon: 'shield',
                 title: 'Verify your account first',
@@ -124,7 +125,7 @@ const ReportAdModal = ({
             statusBarTranslucent
             onRequestClose={close}
         >
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <Pressable
                     onPress={close}
                     style={{ flex: 1, backgroundColor: 'rgba(12,16,28,.62)', paddingHorizontal: 16, paddingVertical: 28, alignItems: 'center', justifyContent: 'center' }}

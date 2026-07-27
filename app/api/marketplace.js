@@ -45,7 +45,7 @@ export const getCategoryFilters = (categorySlug, { force = false } = {}) => cach
 });
 
 export const getRegions = ({ force = false } = {}) => cachedQuery({
-    key: ['reference', 'regions'],
+    key: ['reference', 'regions-with-areas-v2'],
     queryFn: async () => collection(await apiRequest('/locations/regions/?page_size=100')),
     staleTime: CACHE_TIMES.regions,
     persist: true,

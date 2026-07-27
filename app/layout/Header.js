@@ -49,7 +49,7 @@ const Header = (props) => {
                 {props.leftIcon == "back" &&
                     <IconButton
                         onPress={() => props.backAction ? props.backAction() : navigation.goBack()}
-                        icon={props => <MaterialIcons name="arrow-back-ios" {...props} />}
+                        icon={props => <FeatherIcon name="chevron-left" {...props} />}
                         iconColor={colors.title}
                         size={20}
                     />

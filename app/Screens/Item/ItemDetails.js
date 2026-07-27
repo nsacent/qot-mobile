@@ -35,6 +35,7 @@ import {
     formatDistance,
     getStoredBuyerLocation,
 } from '../../utils/nearbyAds';
+import { hasPrimaryVerification } from '../../utils/verification';
 
 const displayAttributeValue = (attribute) => {
     if (attribute.display_value !== null && attribute.display_value !== '') return attribute.display_value;
@@ -126,11 +127,19 @@ const ItemDetails = ({ route, navigation }) => {
     const shareListing = async () => {
         if (!listing) return;
         await Share.share({
-            message: `${listing.title} on QOT Uganda\nhttps://qot.ug/ads/${listing.id}`,
+            message: `${listing.title} on QOT\nhttps://qot.ug/ads/${listing.id}`,
         });
     };
 
     const openContact = async (scheme) => {
+        if (!user) {
+            navigation.navigate('SignIn');
+            return;
+        }
+        if (!hasPrimaryVerification(user)) {
+            navigation.navigate('VerifyAccount');
+            return;
+        }
         if (!listing?.seller_phone) return;
         const target = `${scheme}:${listing.seller_phone}`;
         if (await Linking.canOpenURL(target)) await Linking.openURL(target);
@@ -164,6 +173,14 @@ const ItemDetails = ({ route, navigation }) => {
 
     const toggleFollow = async () => {
         if (!seller || updatingFollow) return;
+        if (!user) {
+            navigation.navigate('SignIn');
+            return;
+        }
+        if (!hasPrimaryVerification(user)) {
+            navigation.navigate('VerifyAccount');
+            return;
+        }
         setUpdatingFollow(true);
         try {
             const result = following ? await unfollowSeller(seller.id) : await followSeller(seller.id);
@@ -304,7 +321,7 @@ const ItemDetails = ({ route, navigation }) => {
                         <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: colors.borderColor, borderRadius: 12, paddingVertical: 13, marginBottom: 20 }}>
                             {[
                                 ['tag', 'Condition', listing.condition ? `${listing.condition[0].toUpperCase()}${listing.condition.slice(1)}` : '—'],
-                                ['map-pin', 'Location', listing.city_name || 'Uganda'],
+                                ['map-pin', 'Location', listing.area_name ? `${listing.area_name}, ${listing.city_name || ''}` : listing.city_name || 'Uganda'],
                                 ['eye', 'Views', String(listing.views_count || 0)],
                             ].map(([icon, label, value], index) => (
                                 <View

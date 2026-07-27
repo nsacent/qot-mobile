@@ -11,7 +11,7 @@ const Privacy = ({ navigation }) => {
     const items = [
         { icon: 'key', title: 'Reset password', detail: 'Receive a secure reset link by email', onPress: () => navigation.navigate('Changepassword') },
         { icon: 'shield', title: 'Privacy policy', detail: 'How QOT handles your information', onPress: () => navigation.navigate('LegalCenter', { tab: 'privacy' }) },
-        { icon: 'file-text', title: 'Terms of use', detail: 'Rules for using QOT Uganda', onPress: () => navigation.navigate('LegalCenter', { tab: 'terms' }) },
+        { icon: 'file-text', title: 'Terms of use', detail: 'Rules for using QOT', onPress: () => navigation.navigate('LegalCenter', { tab: 'terms' }) },
         { icon: 'alert-triangle', title: 'Safety centre', detail: 'Tips for buying and selling safely', onPress: () => navigation.navigate('SafetyCenter') },
     ];
 

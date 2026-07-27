@@ -57,6 +57,16 @@ export const AuthProvider = ({ children }) => {
         return result.user;
     }, []);
 
+    const requestPhoneOTP = useCallback((phone) => authApi.requestPhoneOTP(phone), []);
+
+    const signInWithPhoneOTP = useCallback(async (phone, code) => {
+        const result = await authApi.confirmPhoneOTP({ phone, code });
+        clearSessionCache();
+        await saveSession({ user: result.user, tokens: result.tokens });
+        setUser(result.user);
+        return result.user;
+    }, []);
+
     const signUp = useCallback(async (details) => {
         const result = await authApi.register(details);
         clearSessionCache();
@@ -68,7 +78,6 @@ export const AuthProvider = ({ children }) => {
     const signInWithFacebook = useCallback(async (accessToken) => {
         const result = await authApi.loginWithFacebook({
             accessToken,
-            keepSignedIn: true,
         });
         clearSessionCache();
         await saveSession({ user: result.user, tokens: result.tokens });
@@ -79,7 +88,6 @@ export const AuthProvider = ({ children }) => {
     const signInWithGoogle = useCallback(async (credential) => {
         const result = await authApi.loginWithGoogle({
             credential,
-            keepSignedIn: true,
         });
         clearSessionCache();
         await saveSession({ user: result.user, tokens: result.tokens });
@@ -122,6 +130,8 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: Boolean(user),
         isBootstrapping,
         signIn,
+        requestPhoneOTP,
+        signInWithPhoneOTP,
         signUp,
         signInWithFacebook,
         signInWithGoogle,
@@ -132,6 +142,8 @@ export const AuthProvider = ({ children }) => {
         user,
         isBootstrapping,
         signIn,
+        requestPhoneOTP,
+        signInWithPhoneOTP,
         signUp,
         signInWithFacebook,
         signInWithGoogle,

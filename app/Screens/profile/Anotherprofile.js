@@ -23,6 +23,7 @@ import {
 } from '../../api/account';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate, formatPrice, formatRelativeTime } from '../../utils/formatters';
+import { hasPrimaryVerification } from '../../utils/verification';
 
 const Anotherprofile = ({ navigation, route }) => {
     const { colors } = useTheme();
@@ -66,6 +67,14 @@ const Anotherprofile = ({ navigation, route }) => {
 
     const toggleFollow = async () => {
         if (!seller || updatingFollow) return;
+        if (!user) {
+            navigation.navigate('SignIn');
+            return;
+        }
+        if (!hasPrimaryVerification(user)) {
+            navigation.navigate('VerifyAccount');
+            return;
+        }
         setUpdatingFollow(true);
         try {
             const result = following ? await unfollowSeller(seller.id) : await followSeller(seller.id);
@@ -79,7 +88,7 @@ const Anotherprofile = ({ navigation, route }) => {
     };
 
     const shareProfile = () => Share.share({
-        message: `View ${seller?.full_name || 'this seller'} on QOT Uganda: https://qot.ug/sellers/${sellerId}`,
+        message: `View ${seller?.full_name || 'this seller'} on QOT: https://qot.ug/sellers/${sellerId}`,
     });
 
     if (loading) {
@@ -136,7 +145,7 @@ const Anotherprofile = ({ navigation, route }) => {
                                     {seller.business_name ? <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary, marginTop: 2 }]}>{seller.business_name}</Text> : null}
                                     {seller.bio ? <Text style={[FONTS.fontSm, { color: colors.text, marginTop: 8, lineHeight: 20 }]}>{seller.bio}</Text> : null}
                                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 11 }}>
-                                        <Text style={[FONTS.fontXs, { color: colors.text }]}><FeatherIcon name="map-pin" size={12} /> {seller.city_name || 'Uganda'}</Text>
+                                        <Text style={[FONTS.fontXs, { color: colors.text }]}><FeatherIcon name="map-pin" size={12} /> {seller.area_name ? `${seller.area_name}, ${seller.city_name || ''}` : seller.city_name || 'Uganda'}</Text>
                                         <Text style={[FONTS.fontXs, { color: colors.text }]}><FeatherIcon name="calendar" size={12} /> Joined {formatDate(seller.date_joined)}</Text>
                                         <TouchableOpacity onPress={() => navigation.navigate('SellerReviews', { sellerId: seller.id, sellerName: seller.full_name })} style={{ flexDirection: 'row', alignItems: 'center' }}>
                                             <FeatherIcon name="star" size={12} color="#E89A00" />
@@ -192,7 +201,7 @@ const Anotherprofile = ({ navigation, route }) => {
                             <Text style={[FONTS.h6, { color: COLORS.primary, marginTop: 4 }]}>{formatPrice(item.price, item.currency)}</Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}>
                                 <FeatherIcon name="map-pin" size={12} color={colors.text} />
-                                <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, flex: 1, marginLeft: 3 }]}>{item.city_name || 'Uganda'}</Text>
+                                <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, flex: 1, marginLeft: 3 }]}>{item.area_name || item.city_name || 'Uganda'}</Text>
                                 <Text style={[FONTS.fontXs, { color: colors.text }]}>{formatRelativeTime(item.created_at)}</Text>
                             </View>
                         </View>

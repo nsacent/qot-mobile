@@ -23,7 +23,7 @@ import {
 import CachedImage from '../../components/CachedImage';
 
 const locationFor = (item) => {
-    const city = item?.city_name || 'Uganda';
+    const city = item?.area_name || item?.city_name || 'Uganda';
     const region = item?.region_name || '';
     return region && region !== city ? `${city}, ${region}` : city;
 };
@@ -52,6 +52,7 @@ const RecentlyViewed = ({ navigation }) => {
             item.title,
             item.category_name,
             item.city_name,
+            item.area_name,
             item.region_name,
             item.description,
         ].filter(Boolean).join(' ').toLowerCase().includes(search));

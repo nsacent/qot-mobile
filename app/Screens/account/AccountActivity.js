@@ -104,7 +104,7 @@ const buildActivities = ({ notifications, listings, favorites, reviews, recently
         group: 'viewed',
         source: 'recent',
         title: `Viewed: ${item.title || 'Untitled ad'}`,
-        description: `${item.category_name || 'Ad'} · ${item.city_name || 'Uganda'}`,
+        description: `${item.category_name || 'Ad'} · ${item.area_name || item.city_name || 'Uganda'}`,
         badge: 'Viewed',
         date: item.viewed_at,
         listingId: item.id,

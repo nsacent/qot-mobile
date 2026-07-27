@@ -26,6 +26,7 @@ const snapshot = (listing) => ({
     primary_image: imageFor(listing),
     category_name: listing?.category?.name || listing?.category_name || '',
     city_name: listing?.city?.name || listing?.city_name || listing?.location || 'Uganda',
+    area_name: listing?.area?.name || listing?.area_name || '',
     region_name: listing?.city?.region?.name || listing?.region_name || '',
     condition: listing?.condition || '',
     is_negotiable: Boolean(listing?.is_negotiable),

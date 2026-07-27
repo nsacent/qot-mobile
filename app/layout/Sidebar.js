@@ -15,7 +15,7 @@ const Sidebar = ({ navigation }) => {
     const navItem = [
         {
             icon: "bar-chart-2",
-            name: "Seller Dashboard",
+            name: "Dashboard",
             navigate: "SellerDashboard",
         },
         {
@@ -193,7 +193,7 @@ const Sidebar = ({ navigation }) => {
                             alignItems: 'center',
                         }}
                     >
-                        <Text style={{ ...FONTS.h6, ...FONTS.fontTitle, color: colors.title, marginBottom: 4 }}>QOT Uganda</Text>
+                        <Text style={{ ...FONTS.h6, ...FONTS.fontTitle, color: colors.title, marginBottom: 4 }}>QOT</Text>
                         <Text style={{ ...FONTS.fontSm, color: colors.textLight }}>App Version 1.0</Text>
                     </View>
                 </ScrollView>

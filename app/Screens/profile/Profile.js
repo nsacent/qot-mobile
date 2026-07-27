@@ -77,7 +77,7 @@ const Profile = ({ navigation }) => {
     const shareProfile = () => {
         if (!user?.id) return;
         Share.share({
-            message: `View ${user.full_name || 'my seller profile'} on QOT Uganda: https://qot.ug/sellers/${user.id}`,
+            message: `View ${user.full_name || 'my seller profile'} on QOT: https://qot.ug/sellers/${user.id}`,
         }).catch(() => {});
     };
 
@@ -180,7 +180,7 @@ const Profile = ({ navigation }) => {
             detail: 'Continue conversations with buyers and sellers',
             color: '#2563EB',
             background: '#EFF6FF',
-            onPress: () => navigation.navigate('Messages'),
+            onPress: () => navigation.navigate('AccountMessages'),
         },
         {
             icon: 'settings',
@@ -194,7 +194,16 @@ const Profile = ({ navigation }) => {
 
     return (
         <SafeAreaView style={{ backgroundColor: colors.background, flex: 1 }}>
-            <Header title="My account" titleLeft />
+            <Header
+                title="My account"
+                titleLeft
+                leftIcon="back"
+                backAction={() => (
+                    navigation.canGoBack()
+                        ? navigation.goBack()
+                        : navigation.navigate('Home')
+                )}
+            />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 refreshControl={(
@@ -294,7 +303,9 @@ const Profile = ({ navigation }) => {
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <FeatherIcon name="map-pin" size={14} color={colors.text} />
                                     <Text style={[FONTS.fontXs, { color: colors.text, marginLeft: 5 }]}>
-                                        {user?.profile?.default_city_name || 'Location not set'}
+                                        {user?.profile?.default_area_name
+                                            ? `${user.profile.default_area_name}, ${user.profile.default_city_name || ''}`
+                                            : user?.profile?.default_city_name || 'Location not set'}
                                     </Text>
                                 </View>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>

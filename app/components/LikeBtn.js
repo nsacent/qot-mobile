@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { COLORS } from '../constants/theme';
 import { addFavorite, removeFavorite } from '../api/marketplace';
+import { useAuth } from '../context/AuthContext';
+import { hasPrimaryVerification } from '../utils/verification';
 
 const LikeBtn = ({ listingId, initialLiked = false, onChange, onError }) => {
+    const navigation = useNavigation();
+    const { user, isAuthenticated } = useAuth();
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [pending, setPending] = useState(false);
 
@@ -16,6 +21,14 @@ const LikeBtn = ({ listingId, initialLiked = false, onChange, onError }) => {
         event?.stopPropagation?.();
 
         if (!listingId || pending) return;
+        if (!isAuthenticated) {
+            navigation.navigate('SignIn');
+            return;
+        }
+        if (!hasPrimaryVerification(user)) {
+            navigation.navigate('VerifyAccount');
+            return;
+        }
         setPending(true);
         try {
             const result = isLiked

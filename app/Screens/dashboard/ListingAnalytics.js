@@ -23,6 +23,7 @@ import {
     formatPrice,
     formatRelativeTime,
 } from '../../utils/formatters';
+import { hasPrimaryVerification } from '../../utils/verification';
 
 const numberValue = (...values) => {
     for (const value of values) {
@@ -131,7 +132,7 @@ const ListingAnalytics = ({ route, navigation }) => {
         );
     }
 
-    if (!user?.is_verified) {
+    if (!hasPrimaryVerification(user)) {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
                 <Header title="Ad performance" leftIcon="back" titleLeft />
@@ -180,7 +181,7 @@ const ListingAnalytics = ({ route, navigation }) => {
                                     </View>
                                     <Text numberOfLines={2} style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, lineHeight: 19, marginTop: 7 }]}>{listing.title}</Text>
                                     <Text numberOfLines={1} style={[FONTS.h6, { color: COLORS.primary, marginTop: 4 }]}>{formatPrice(listing.price, listing.currency)}</Text>
-                                    <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 4 }]}>{listing.city_name || 'Uganda'} · {formatRelativeTime(listing.created_at)}</Text>
+                                    <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 4 }]}>{listing.area_name || listing.city_name || 'Uganda'} · {formatRelativeTime(listing.created_at)}</Text>
                                 </View>
                             </View>
                             <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.border }}>

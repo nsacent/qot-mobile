@@ -160,7 +160,7 @@ const VerifyAccount = ({ navigation }) => {
             <Header title="Verify your account" leftIcon="back" titleLeft />
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <ScrollView
                     keyboardShouldPersistTaps="handled"
@@ -192,7 +192,7 @@ const VerifyAccount = ({ navigation }) => {
 
                         <Text style={[FONTS.h5, { color: colors.title, marginTop: 26 }]}>Choose how to verify</Text>
                         <Text style={[FONTS.fontSm, { color: colors.text, lineHeight: 20, marginTop: 5 }] }>
-                            Phone verification is the fastest and recommended option for QOT Uganda.
+                            Phone verification is the fastest and recommended option for QOT.
                         </Text>
 
                         <View style={{ gap: 10, marginTop: 18 }}>

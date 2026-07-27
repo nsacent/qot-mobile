@@ -67,8 +67,8 @@ const Setting = ({ navigation }) => {
     const { user, signOut } = useAuth();
     const phoneVerified = Boolean(user?.phone_verified || user?.phone_verified_at);
     const emailVerified = Boolean(user?.email_verified || user?.email_verified_at);
-    const location = user?.profile?.default_city_name
-        ? `${user.profile.default_city_name}${user.profile.default_region_name ? `, ${user.profile.default_region_name}` : ''}`
+    const location = user?.profile?.default_area_name || user?.profile?.default_city_name
+        ? `${user.profile.default_area_name ? `${user.profile.default_area_name}, ` : ''}${user.profile.default_city_name || ''}${user.profile.default_region_name ? `, ${user.profile.default_region_name}` : ''}`
         : 'Not selected';
     const timezone = user?.profile?.timezone || 'Africa/Kampala';
 
@@ -203,15 +203,15 @@ const Setting = ({ navigation }) => {
                     <View style={{ borderRadius: 16, borderWidth: 1, borderColor: colors.borderColor, overflow: 'hidden' }}>
                         <SettingRow first icon="help-circle" title="Help centre" detail="FAQs, legal information and support" onPress={() => navigation.navigate('Help')} />
                         <SettingRow icon="shield" title="Safety centre" detail="Safer buying, selling and account tips" onPress={() => navigation.navigate('SafetyCenter')} />
-                        <SettingRow icon="mail" title="Email QOT Uganda" detail="info@qot.ug" onPress={() => Linking.openURL('mailto:info@qot.ug')} />
-                        <SettingRow icon="phone" title="Call QOT Uganda" detail="0200 911 678" onPress={() => Linking.openURL('tel:0200911678')} />
+                        <SettingRow icon="mail" title="Email QOT" detail="info@qot.ug" onPress={() => Linking.openURL('mailto:info@qot.ug')} />
+                        <SettingRow icon="phone" title="Call QOT" detail="0200 911 678" onPress={() => Linking.openURL('tel:0200911678')} />
                     </View>
 
                     <TouchableOpacity onPress={confirmSignOut} style={{ minHeight: 50, borderRadius: 13, borderWidth: 1, borderColor: '#F3B4B4', backgroundColor: '#FFF7F7', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 24 }}>
                         <FeatherIcon name="log-out" size={17} color="#B42318" />
                         <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: '#B42318', marginLeft: 8 }]}>Sign out</Text>
                     </TouchableOpacity>
-                    <Text style={[FONTS.fontXs, { color: colors.textLight, textAlign: 'center', marginTop: 14 }]}>QOT Uganda · Version 1.0.0</Text>
+                    <Text style={[FONTS.fontXs, { color: colors.textLight, textAlign: 'center', marginTop: 14 }]}>QOT · Version 1.0.0</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>

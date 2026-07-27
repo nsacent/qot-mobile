@@ -280,7 +280,7 @@ const Myads = ({ navigation }) => {
                                         <Text style={[FONTS.h6, { color: COLORS.primary, marginTop: 5 }]}>{item.is_incomplete_draft && !item.price ? 'Add price' : formatPrice(item.price, item.currency)}</Text>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 7 }}>
                                             <FeatherIcon name="map-pin" size={12} color={colors.text} />
-                                            <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, flex: 1, marginLeft: 4 }]}>{item.city_name || 'Uganda'}</Text>
+                                            <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, flex: 1, marginLeft: 4 }]}>{item.area_name || item.city_name || 'Uganda'}</Text>
                                             <Text style={[FONTS.fontXs, { color: colors.text }]}>{formatRelativeTime(item.updated_at || item.created_at)}</Text>
                                         </View>
                                     </View>

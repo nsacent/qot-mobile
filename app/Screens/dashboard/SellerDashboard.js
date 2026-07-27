@@ -156,7 +156,7 @@ const SellerDashboard = ({ navigation }) => {
             setDashboard(summary);
             setListings(sellerListings);
         } catch (requestError) {
-            setError(requestError.message || 'The seller dashboard could not be loaded.');
+            setError(requestError.message || 'The dashboard could not be loaded.');
         } finally {
             setLoading(false);
             setRefreshing(false);

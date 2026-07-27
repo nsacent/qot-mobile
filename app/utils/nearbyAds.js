@@ -26,9 +26,13 @@ const KNOWN_CITY_COORDINATES = {
 };
 
 const normaliseCity = (value) => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, ' ');
+    .replace(/\b(city|municipality|municipal|district|division|town|county|sub-?county)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 
 const radians = (degrees) => degrees * (Math.PI / 180);
 
@@ -87,6 +91,76 @@ export const getStoredBuyerLocation = async (maxAgeMs = 30 * 60 * 1000) => {
         return null;
     }
 };
+
+const bestNameMatch = (items, candidates) => {
+    let bestMatch = null;
+
+    for (const item of items) {
+        const itemName = normaliseCity(item?.name || item?.title || item?.label);
+        if (!itemName) continue;
+        for (const [index, candidate] of candidates.entries()) {
+            let score = 0;
+            if (candidate === itemName) score = 100 - index;
+            else if (
+                Math.min(candidate.length, itemName.length) >= 4
+                && (candidate.includes(itemName) || itemName.includes(candidate))
+            ) score = 70 - index;
+            if (score > (bestMatch?.score || 0)) bestMatch = { item, score };
+        }
+    }
+
+    return bestMatch?.item || null;
+};
+
+export const requestCurrentMarketplaceLocation = async (cities = []) => {
+    const position = await requestBuyerLocation();
+    const addresses = await Location.reverseGeocodeAsync({
+        latitude: position.latitude,
+        longitude: position.longitude,
+    });
+    const address = addresses[0] || {};
+
+    if (address.isoCountryCode && String(address.isoCountryCode).toUpperCase() !== 'UG') {
+        throw new Error('Your current location is outside Uganda. Choose a Ugandan city instead.');
+    }
+
+    const cityCandidates = [
+        address.city,
+        address.district,
+        address.subregion,
+        address.region,
+        address.name,
+    ].map(normaliseCity).filter(Boolean);
+    const areaCandidates = [
+        address.district,
+        address.subregion,
+        address.city,
+        address.name,
+        address.street,
+        address.formattedAddress,
+    ].map(normaliseCity).filter(Boolean);
+    const areas = cities.flatMap((city) => (
+        (city.areas || []).map((area) => ({ ...area, city }))
+    ));
+    const matchedArea = bestNameMatch(areas, areaCandidates);
+    const matchedCity = matchedArea?.city || bestNameMatch(cities, cityCandidates);
+
+    if (!matchedCity) {
+        const detected = address.city || address.district || address.subregion || address.region;
+        throw new Error(detected
+            ? `We found ${detected}. Choose the nearest QOT area to continue.`
+            : 'We could not match your location. Choose the nearest QOT area instead.');
+    }
+
+    if ((matchedCity.areas || []).length && !matchedArea) {
+        const detected = address.district || address.subregion || address.name || matchedCity.name;
+        throw new Error(`We found ${detected}, but could not confirm the exact ${matchedCity.name} area. Choose your division manually.`);
+    }
+
+    return { city: matchedCity, area: matchedArea, position };
+};
+
+export const requestCurrentMarketplaceCity = requestCurrentMarketplaceLocation;
 
 const readCityCoordinates = async () => {
     try {

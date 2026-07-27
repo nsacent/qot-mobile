@@ -1,15 +1,23 @@
 import 'react-native-gesture-handler';
-import React from 'react';
-import { KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Image, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import Routes from './app/Navigations/Route';
 import { AuthProvider } from './app/context/AuthContext';
 import { NotificationProvider } from './app/context/NotificationContext';
 import ConnectionBanner from './app/components/ConnectionBanner';
 import { QueryCacheProvider } from './app/cache/queryCache';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const SPLASH_BACKGROUND = '#FFFDF9';
 
 const App = () =>{
+		const [showStartupSplash, setShowStartupSplash] = useState(true);
+		const splashOpacity = useRef(new Animated.Value(1)).current;
 
 		const [loaded] = useFonts({
         PoppinsRegular: require('./app/assets/fonts/Poppins-Regular.ttf'),
@@ -22,18 +30,28 @@ const App = () =>{
 		'Material Icons': require('react-native-vector-icons/Fonts/MaterialIcons.ttf'),
 		});  
 
+		useEffect(() => {
+			if (!loaded) return undefined;
+
+			SplashScreen.hideAsync().catch(() => {});
+			const holdTimer = setTimeout(() => {
+				Animated.timing(splashOpacity, {
+					toValue: 0,
+					duration: 240,
+					useNativeDriver: true,
+				}).start(() => setShowStartupSplash(false));
+			}, 950);
+
+			return () => clearTimeout(holdTimer);
+		}, [loaded, splashOpacity]);
+
 		if(!loaded){
 		  return null;
 		}
 
     return (
-        <SafeAreaProvider>
-          <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'android' ? 'height' : undefined}
-            keyboardVerticalOffset={0}
-          >
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
             <QueryCacheProvider>
               <AuthProvider>
                 <NotificationProvider>
@@ -42,9 +60,36 @@ const App = () =>{
                 </NotificationProvider>
               </AuthProvider>
             </QueryCacheProvider>
-          </KeyboardAvoidingView>
-        </SafeAreaProvider>
+          </SafeAreaProvider>
+		  {showStartupSplash ? (
+			<Animated.View
+				pointerEvents="none"
+				style={[styles.startupSplash, { opacity: splashOpacity }]}
+			>
+				<StatusBar backgroundColor={SPLASH_BACKGROUND} barStyle="dark-content" translucent={false} />
+				<Image
+					source={require('./app/assets/images/qot-logo.png')}
+					style={styles.startupLogo}
+					resizeMode="contain"
+				/>
+			</Animated.View>
+		  ) : null}
+        </GestureHandlerRootView>
     );
 };
+
+const styles = StyleSheet.create({
+	startupSplash: {
+		...StyleSheet.absoluteFillObject,
+		zIndex: 10000,
+		backgroundColor: SPLASH_BACKGROUND,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	startupLogo: {
+		width: 220,
+		height: 96,
+	},
+});
 
 export default App;

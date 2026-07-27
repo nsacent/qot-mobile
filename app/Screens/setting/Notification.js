@@ -50,7 +50,7 @@ const pushDetails = (status) => {
     if (status === 'permission_denied') return {
         icon: 'bell-off',
         title: 'Device alerts are blocked',
-        detail: 'Open your phone settings and allow notifications for QOT Uganda.',
+        detail: 'Open your phone settings and allow notifications for QOT.',
         color: '#B42318',
         background: '#FFF0F0',
         action: 'Open settings',
@@ -124,7 +124,7 @@ const Notification = () => {
             try {
                 await Linking.openSettings();
             } catch {
-                setError('Open your phone settings and allow notifications for QOT Uganda.');
+                setError('Open your phone settings and allow notifications for QOT.');
             }
             return;
         }

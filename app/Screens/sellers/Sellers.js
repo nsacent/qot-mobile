@@ -27,8 +27,9 @@ const compactNumber = (value) => {
 const sellerName = (seller) => seller?.business_name || seller?.full_name || 'QOT seller';
 
 const sellerLocation = (seller) => {
+    if (seller?.area_name && seller?.city_name) return `${seller.area_name}, ${seller.city_name}`;
     if (seller?.city_name && seller?.region_name) return `${seller.city_name}, ${seller.region_name}`;
-    return seller?.city_name || seller?.region_name || 'Uganda';
+    return seller?.area_name || seller?.city_name || seller?.region_name || 'Uganda';
 };
 
 const Sellers = ({ navigation }) => {

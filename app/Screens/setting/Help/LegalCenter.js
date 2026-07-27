@@ -9,7 +9,7 @@ import { COLORS, FONTS } from '../../../constants/theme';
 const CONTENT = {
     privacy: {
         title: 'Privacy guide',
-        intro: 'A clear overview of how QOT Uganda handles marketplace and account information.',
+        intro: 'A clear overview of how QOT handles marketplace and account information.',
         sections: [
             ['Information QOT uses', 'Account details, verification information, profile content, ads, messages, saved activity, reports, reviews and technical usage data.'],
             ['Why it is used', 'To operate the marketplace, secure accounts, verify users, deliver messages and notifications, moderate content and improve QOT.'],
@@ -21,7 +21,7 @@ const CONTENT = {
     },
     terms: {
         title: 'Terms guide',
-        intro: 'The main responsibilities that apply when you buy, sell or communicate through QOT Uganda.',
+        intro: 'The main responsibilities that apply when you buy, sell or communicate through QOT.',
         sections: [
             ['Your account', 'Provide accurate information, protect your login details and do not use another person’s account without permission.'],
             ['Ads and prohibited content', 'Post genuine items in the correct category with accurate photos, price, condition and location. Illegal, unsafe, misleading or duplicate ads may be removed.'],

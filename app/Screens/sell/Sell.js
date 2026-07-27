@@ -15,6 +15,13 @@ import {
     View,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from 'react-native-reanimated';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
 import Header from '../../layout/Header';
@@ -42,6 +49,8 @@ import {
     getLocalListingDraft,
     saveLocalListingDraft,
 } from '../../cache/localDraft';
+import { requestCurrentMarketplaceLocation } from '../../utils/nearbyAds';
+import { hasPrimaryVerification } from '../../utils/verification';
 
 const STEPS = [
     ['grid', 'Category'],
@@ -58,18 +67,76 @@ const findCity = (regions, id) => regions
     .flatMap((region) => region.cities || [])
     .find((city) => String(city.id) === String(id));
 
+const findArea = (regions, id) => regions
+    .flatMap((region) => region.cities || [])
+    .flatMap((city) => (city.areas || []).map((area) => ({ ...area, city })))
+    .find((area) => String(area.id) === String(id));
+
+const imageKey = (image) => String(image.localKey || image.id || image.uri);
+
+const DraggablePhotoTile = ({ children, disabled, index, itemKey, onDragEnd, onDragStart, onLayout, style }) => {
+    const translateX = useSharedValue(0);
+    const translateY = useSharedValue(0);
+    const scale = useSharedValue(1);
+    const active = useSharedValue(0);
+
+    const dragGesture = Gesture.Pan()
+        .enabled(!disabled)
+        .activateAfterLongPress(180)
+        .shouldCancelWhenOutside(false)
+        .onStart(() => {
+            active.value = 1;
+            scale.value = withTiming(1.04, { duration: 120 });
+            runOnJS(onDragStart)(itemKey);
+        })
+        .onUpdate((event) => {
+            translateX.value = event.translationX;
+            translateY.value = event.translationY;
+        })
+        .onEnd((event) => {
+            runOnJS(onDragEnd)(itemKey, index, event.translationX, event.translationY);
+        })
+        .onFinalize(() => {
+            active.value = 0;
+            translateX.value = withTiming(0, { duration: 150 });
+            translateY.value = withTiming(0, { duration: 150 });
+            scale.value = withTiming(1, { duration: 120 });
+            runOnJS(onDragStart)(null);
+        });
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        zIndex: active.value ? 50 : 1,
+        elevation: active.value ? 12 : 0,
+        transform: [
+            { translateX: translateX.value },
+            { translateY: translateY.value },
+            { scale: scale.value },
+        ],
+    }));
+
+    return (
+        <GestureDetector gesture={dragGesture}>
+            <Animated.View onLayout={onLayout} style={[style, animatedStyle]}>
+                {children}
+            </Animated.View>
+        </GestureDetector>
+    );
+};
+
 const Sell = ({ navigation, route }) => {
     const { colors } = useTheme();
     const { user } = useAuth();
     const listingId = route?.params?.listingId;
     const isEditing = Boolean(listingId);
     const scrollRef = useRef(null);
+    const photoLayoutsRef = useRef({});
 
     const [step, setStep] = useState(0);
     const [categories, setCategories] = useState([]);
     const [regions, setRegions] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedCity, setSelectedCity] = useState(null);
+    const [selectedArea, setSelectedArea] = useState(null);
     const [categoryFilters, setCategoryFilters] = useState([]);
     const [filterValues, setFilterValues] = useState({});
     const [pendingDraftFilterValues, setPendingDraftFilterValues] = useState({});
@@ -94,6 +161,9 @@ const Sell = ({ navigation, route }) => {
     const [draftReady, setDraftReady] = useState(false);
     const [clearDraftOpen, setClearDraftOpen] = useState(false);
     const [clearDraftLoading, setClearDraftLoading] = useState(false);
+    const [locating, setLocating] = useState(false);
+    const [locationMessage, setLocationMessage] = useState(null);
+    const [draggingImageKey, setDraggingImageKey] = useState(null);
 
     useEffect(() => {
         let active = true;
@@ -123,7 +193,9 @@ const Sell = ({ navigation, route }) => {
                 if (isEditing && existing) {
                     const selected = flattenCategories(categoryData).find((item) => String(item.id) === String(existing.category));
                     setSelectedCategory(selected || { id: existing.category, name: existing.category_name, slug: existing.category });
-                    setSelectedCity(findCity(regionData, existing.city) || { id: existing.city, name: existing.city_name });
+                    const existingCity = findCity(regionData, existing.city) || { id: existing.city, name: existing.city_name };
+                    setSelectedCity(existingCity);
+                    setSelectedArea(findArea(regionData, existing.area) || (existing.area ? { id: existing.area, name: existing.area_name, city: existingCity } : null));
                     setTitle(existing.title || '');
                     setDescription(existing.description || '');
                     setPrice(String(existing.price || ''));
@@ -148,6 +220,7 @@ const Sell = ({ navigation, route }) => {
                     const selected = flattenCategories(categoryData).find((item) => String(item.id) === String(draftData.category));
                     setSelectedCategory(selected || null);
                     setSelectedCity(findCity(regionData, draftData.city) || null);
+                    setSelectedArea(findArea(regionData, draftData.area) || null);
                     setTitle(String(draftData.title || ''));
                     setDescription(String(draftData.description || ''));
                     setPrice(String(draftData.price || ''));
@@ -167,6 +240,7 @@ const Sell = ({ navigation, route }) => {
                     setStep(selected ? 1 : 0);
                 } else {
                     setSelectedCity(findCity(regionData, user?.profile?.default_city) || null);
+                    setSelectedArea(findArea(regionData, user?.profile?.default_area) || null);
                 }
             })
             .catch((requestError) => active && setError(requestError.message))
@@ -177,7 +251,7 @@ const Sell = ({ navigation, route }) => {
             });
 
         return () => { active = false; };
-    }, [isEditing, listingId, user?.profile?.default_city]);
+    }, [isEditing, listingId, user?.profile?.default_area, user?.profile?.default_city]);
 
     useEffect(() => {
         let active = true;
@@ -221,6 +295,7 @@ const Sell = ({ navigation, route }) => {
             const draftData = {
                 category: selectedCategory?.id || '',
                 city: selectedCity?.id || '',
+                area: selectedArea?.id || '',
                 title,
                 description,
                 price,
@@ -249,16 +324,67 @@ const Sell = ({ navigation, route }) => {
         }, 1200);
 
         return () => clearTimeout(timeout);
-    }, [condition, description, draftReady, filterValues, images, isEditing, negotiable, price, selectedCategory?.id, selectedCity?.id, stagedImageIds, submitting, title, uploading, user?.id]);
+    }, [condition, description, draftReady, filterValues, images, isEditing, negotiable, price, selectedArea?.id, selectedCategory?.id, selectedCity?.id, stagedImageIds, submitting, title, uploading, user?.id]);
 
     const categoryGroups = useMemo(() => categories.map((category) => ({
         title: category.name,
         items: category.children?.length ? category.children : [category],
     })), [categories]);
-    const locationGroups = useMemo(() => regions.map((region) => ({
-        title: region.name,
-        items: region.cities || [],
-    })), [regions]);
+    const locationGroups = useMemo(() => regions.flatMap((region) => {
+        const cityItems = [];
+        const areaGroups = [];
+
+        for (const city of region.cities || []) {
+            if ((city.areas || []).length) {
+                areaGroups.push({
+                    title: `${city.name}, ${region.name}`,
+                    items: city.areas.map((area) => ({
+                        ...area,
+                        id: `area-${area.id}`,
+                        area_id: area.id,
+                        city_id: city.id,
+                        city_name: city.name,
+                        region_name: region.name,
+                        selection_type: 'area',
+                    })),
+                });
+            } else {
+                cityItems.push({
+                    ...city,
+                    id: `city-${city.id}`,
+                    city_id: city.id,
+                    region_name: city.region_name || region.name,
+                    selection_type: 'city',
+                });
+            }
+        }
+
+        return [
+            ...(cityItems.length ? [{ title: region.name, items: cityItems }] : []),
+            ...areaGroups,
+        ];
+    }), [regions]);
+    const allCities = useMemo(() => regions.flatMap((region) => (
+        (region.cities || []).map((city) => ({ ...city, region_name: city.region_name || region.name }))
+    )), [regions]);
+    const selectedLocationId = selectedArea ? `area-${selectedArea.id}` : selectedCity ? `city-${selectedCity.id}` : null;
+    const selectedLocationLabel = selectedArea
+        ? `${selectedArea.name}, ${selectedCity?.name || selectedArea.city?.name || ''}`
+        : selectedCity
+            ? `${selectedCity.name}${selectedCity.region_name ? `, ${selectedCity.region_name}` : ''}`
+            : '';
+
+    const chooseLocation = (location) => {
+        if (location.selection_type === 'area') {
+            const city = findCity(regions, location.city_id);
+            setSelectedCity(city || { id: location.city_id, name: location.city_name, region_name: location.region_name });
+            setSelectedArea({ id: location.area_id, name: location.name, city });
+        } else {
+            setSelectedCity(findCity(regions, location.city_id) || { ...location, id: location.city_id });
+            setSelectedArea(null);
+        }
+        setLocationMessage(null);
+    };
 
     const inputStyle = {
         minHeight: 50,
@@ -353,6 +479,27 @@ const Sell = ({ navigation, route }) => {
         }
     };
 
+    const pickAndCropImage = async () => {
+        setPhotoSourceOpen(false);
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+                setError('Allow QOT to access your photos before cropping an image.');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+            });
+            if (!result.canceled) await addSelectedImages(result.assets);
+        } catch (requestError) {
+            setError(requestError.message || 'The photo cropper could not be opened.');
+        }
+    };
+
     const takePhoto = async () => {
         setPhotoSourceOpen(false);
         try {
@@ -399,7 +546,84 @@ const Sell = ({ navigation, route }) => {
         setDraftStatus('Main photo updated. The first photo will appear on your ad.');
     };
 
+    const handlePhotoDrop = (itemKey, fallbackIndex, translationX, translationY) => {
+        const sourceIndex = images.findIndex((image) => imageKey(image) === itemKey);
+        const actualSourceIndex = sourceIndex >= 0 ? sourceIndex : fallbackIndex;
+        const sourceLayout = photoLayoutsRef.current[itemKey];
+        if (!sourceLayout || actualSourceIndex < 0) return;
+
+        const dropCenter = {
+            x: sourceLayout.x + (sourceLayout.width / 2) + translationX,
+            y: sourceLayout.y + (sourceLayout.height / 2) + translationY,
+        };
+        let targetIndex = actualSourceIndex;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+
+        images.forEach((image, index) => {
+            const layout = photoLayoutsRef.current[imageKey(image)];
+            if (!layout) return;
+            const distance = Math.hypot(
+                dropCenter.x - (layout.x + (layout.width / 2)),
+                dropCenter.y - (layout.y + (layout.height / 2)),
+            );
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                targetIndex = index;
+            }
+        });
+
+        if (targetIndex === actualSourceIndex) return;
+        setImages((current) => {
+            const currentSourceIndex = current.findIndex((image) => imageKey(image) === itemKey);
+            if (currentSourceIndex < 0) return current;
+            const reordered = [...current];
+            const [selected] = reordered.splice(currentSourceIndex, 1);
+            reordered.splice(Math.min(targetIndex, reordered.length), 0, selected);
+            return reordered;
+        });
+        setDraftStatus(targetIndex === 0
+            ? 'Main photo updated. The first photo will appear on your ad.'
+            : 'Photo order updated. Drag any photo into the first position to make it the main photo.');
+    };
+
     const updateFilter = (key, value) => setFilterValues((current) => ({ ...current, [key]: value }));
+
+    const useCurrentLocation = async () => {
+        if (locating) return;
+        setLocating(true);
+        setError('');
+        setLocationMessage(null);
+        try {
+            const { city, area } = await requestCurrentMarketplaceLocation(allCities);
+            setSelectedCity(city);
+            setSelectedArea(area || null);
+            const label = area ? `${area.name}, ${city.name}` : city.name;
+            setDraftStatus(`Current location set to ${label}.`);
+            setLocationMessage({ type: 'success', text: `Location set to ${label}.` });
+        } catch (locationError) {
+            setLocationMessage({
+                type: 'error',
+                text: locationError.message || 'We could not find your current area. Choose it manually instead.',
+            });
+        } finally {
+            setLocating(false);
+        }
+    };
+
+    const validateForm = () => {
+        if (!selectedCategory) return 'Choose a category to continue.';
+        if (uploading) return 'Wait for every photo to finish uploading.';
+        if (images.length < minimumPhotos) return `${selectedCategory.name} requires at least ${minimumPhotos} photo${minimumPhotos === 1 ? '' : 's'}.`;
+        if (images.length > maximumPhotos) return `${selectedCategory.name} allows a maximum of ${maximumPhotos} photos.`;
+        if (title.trim().length < 10) return 'Use an ad title of at least 10 characters.';
+        if (description.trim().length < 20) return 'Describe your item using at least 20 characters.';
+        if (!price || Number(price.replace(/[^0-9.]/g, '')) <= 0) return 'Enter a valid price greater than zero.';
+        if (!selectedCity) return 'Choose the item location.';
+        if ((selectedCity.areas || []).length && !selectedArea) return `Choose the specific area within ${selectedCity.name}.`;
+        const missing = categoryFilters.find((filter) => filter.is_required && String(filterValues[filter.key] ?? '').trim() === '');
+        if (missing) return `${missing.name} is required for this category.`;
+        return '';
+    };
 
     const validateStep = () => {
         if (step === 0 && !selectedCategory) return 'Choose a category to continue.';
@@ -408,15 +632,21 @@ const Sell = ({ navigation, route }) => {
             if (images.length < minimumPhotos) return `${selectedCategory.name} requires at least ${minimumPhotos} photo${minimumPhotos === 1 ? '' : 's'}.`;
             if (images.length > maximumPhotos) return `${selectedCategory.name} allows a maximum of ${maximumPhotos} photos.`;
         }
-        if (step === 2) {
-            if (!title.trim()) return 'Enter an ad title.';
-            if (!description.trim()) return 'Describe the item you are selling.';
-            if (!price || Number(price.replace(/[^0-9.]/g, '')) <= 0) return 'Enter a valid price greater than zero.';
-            if (!selectedCity) return 'Choose the item location.';
-            const missing = categoryFilters.find((filter) => filter.is_required && String(filterValues[filter.key] ?? '').trim() === '');
-            if (missing) return `${missing.name} is required for this category.`;
-        }
+        if (step === 2) return validateForm();
         return '';
+    };
+
+    const goToStep = (targetStep) => {
+        if (targetStep === 3) {
+            const validationError = validateForm();
+            if (validationError) {
+                setError(validationError);
+                return;
+            }
+        }
+        setError('');
+        setStep(targetStep);
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
     };
 
     const nextStep = () => {
@@ -439,17 +669,23 @@ const Sell = ({ navigation, route }) => {
     });
 
     const submit = async () => {
-        if (!user?.is_verified) {
-            setError('Verify your QOT account before posting an ad.');
+        if (!hasPrimaryVerification(user)) {
+            setError('Verify your phone number before posting or editing an ad.');
             return;
         }
         if (uploading || submitting) return;
+        const validationError = validateForm();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
 
         setSubmitting(true);
         setError('');
         try {
             const formData = new FormData();
             formData.append('city', String(selectedCity.id));
+            formData.append('area', selectedArea ? String(selectedArea.id) : '');
             formData.append('title', title.trim());
             formData.append('description', description.trim());
             formData.append('price', price.replace(/[^0-9.]/g, ''));
@@ -517,6 +753,7 @@ const Sell = ({ navigation, route }) => {
             await clearLocalListingDraft(user?.id);
             setSelectedCategory(null);
             setSelectedCity(findCity(regions, user?.profile?.default_city) || null);
+            setSelectedArea(findArea(regions, user?.profile?.default_area) || null);
             setCategoryFilters([]);
             setFilterValues({});
             setTitle('');
@@ -571,14 +808,36 @@ const Sell = ({ navigation, route }) => {
                 <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }]}>{images.length}/{maximumPhotos} added</Text>
             </TouchableOpacity>
 
+            {images.length > 1 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 2 }}>
+                    <FeatherIcon name="move" size={14} color={COLORS.primary} />
+                    <Text style={[FONTS.fontXs, { color: colors.text, flex: 1, marginLeft: 7 }]}>Hold and drag photos to reorder them. The first photo is the main photo.</Text>
+                </View>
+            )}
+
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 14 }}>
                 {images.map((image, index) => (
-                    <View key={image.localKey || image.id || image.uri} style={{ width: '48.5%', marginBottom: 11, borderRadius: 13, overflow: 'hidden', backgroundColor: colors.card, borderWidth: 1, borderColor: index === 0 ? COLORS.primary : colors.borderColor }}>
+                    <DraggablePhotoTile
+                        key={imageKey(image)}
+                        itemKey={imageKey(image)}
+                        index={index}
+                        disabled={image.uploading || Boolean(removingImageId)}
+                        onDragStart={setDraggingImageKey}
+                        onDragEnd={handlePhotoDrop}
+                        onLayout={(event) => { photoLayoutsRef.current[imageKey(image)] = event.nativeEvent.layout; }}
+                        style={{ width: '48.5%', marginBottom: 11, borderRadius: 13, overflow: 'hidden', backgroundColor: colors.card, borderWidth: draggingImageKey && index === 0 ? 2 : 1, borderColor: index === 0 ? COLORS.primary : colors.borderColor }}
+                    >
                         <TouchableOpacity disabled={image.uploading} onPress={() => setPreviewImage(image.sourceUri || image.uri)} activeOpacity={0.88}>
                             <Image source={{ uri: image.uri }} blurRadius={image.uploading ? 12 : 0} style={{ width: '100%', aspectRatio: 4 / 3, backgroundColor: colors.border }} resizeMode="cover" />
                             {index === 0 && !image.uploading && (
                                 <View style={{ position: 'absolute', left: 7, top: 7, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: COLORS.primary }}>
                                     <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.white, fontSize: 9 }]}>MAIN PHOTO</Text>
+                                </View>
+                            )}
+                            {index === 0 && draggingImageKey && draggingImageKey !== imageKey(image) && (
+                                <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(249,115,22,.78)', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
+                                    <FeatherIcon name="image" size={21} color={COLORS.white} />
+                                    <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.white, textAlign: 'center', marginTop: 5 }]}>DROP HERE FOR MAIN</Text>
                                 </View>
                             )}
                             {image.uploading && (
@@ -600,7 +859,7 @@ const Sell = ({ navigation, route }) => {
                                 {removingImageId === (image.id || image.uri) ? <ActivityIndicator size="small" color={COLORS.danger} /> : <FeatherIcon name="trash-2" size={13} color={COLORS.danger} />}
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </DraggablePhotoTile>
                 ))}
             </View>
         </>
@@ -662,9 +921,20 @@ const Sell = ({ navigation, route }) => {
             <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginBottom: 7 }]}>Location *</Text>
             <TouchableOpacity onPress={() => setLocationModal(true)} style={[inputStyle, { marginBottom: 16, flexDirection: 'row', alignItems: 'center' }]}>
                 <FeatherIcon name="map-pin" size={18} color={COLORS.primary} />
-                <Text style={[FONTS.font, { color: selectedCity ? colors.title : colors.textLight, flex: 1, marginLeft: 9 }]}>{selectedCity ? `${selectedCity.name}${selectedCity.region_name ? `, ${selectedCity.region_name}` : ''}` : 'Choose a city or district'}</Text>
+                <Text style={[FONTS.font, { color: selectedCity ? colors.title : colors.textLight, flex: 1, marginLeft: 9 }]}>{selectedLocationLabel || 'Choose an area, city or district'}</Text>
                 <FeatherIcon name="chevron-right" size={19} color={colors.text} />
             </TouchableOpacity>
+            <TouchableOpacity disabled={locating} onPress={useCurrentLocation} style={{ minHeight: 45, borderRadius: 11, backgroundColor: `${COLORS.primary}0D`, borderWidth: 1, borderColor: `${COLORS.primary}35`, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, marginTop: -7, marginBottom: 16 }}>
+                {locating ? <ActivityIndicator size="small" color={COLORS.primary} /> : <FeatherIcon name="crosshair" size={16} color={COLORS.primary} />}
+                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary, marginLeft: 8 }]}>{locating ? 'Finding your area…' : 'Use your current location instead'}</Text>
+            </TouchableOpacity>
+            {locationMessage ? (
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', borderRadius: 10, padding: 10, marginTop: -8, marginBottom: 14, backgroundColor: locationMessage.type === 'error' ? '#FDECEC' : '#EAF8EF' }}>
+                    <FeatherIcon name={locationMessage.type === 'error' ? 'alert-circle' : 'check-circle'} size={15} color={locationMessage.type === 'error' ? COLORS.danger : '#16803C'} />
+                    <Text style={[FONTS.fontXs, { color: locationMessage.type === 'error' ? COLORS.danger : '#16803C', flex: 1, marginLeft: 7, lineHeight: 17 }]}>{locationMessage.text}</Text>
+                </View>
+            ) : null}
+            <Text style={[FONTS.fontXs, { color: colors.textLight, fontSize: 9, marginTop: -10, marginBottom: 15, textAlign: 'center' }]}>QOT saves only the selected area, not your exact coordinates.</Text>
 
             <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginBottom: 7 }]}>Condition *</Text>
             <View style={{ flexDirection: 'row', gap: 9, marginBottom: 16 }}>
@@ -695,7 +965,7 @@ const Sell = ({ navigation, route }) => {
                     <Text style={[FONTS.h5, { color: colors.title, marginTop: 7 }]}>{title}</Text>
                     <Text style={[FONTS.h4, { color: COLORS.primary, marginTop: 5 }]}>{formatPrice(price, 'UGX')}</Text>
                     {negotiable && <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, marginTop: 2 }]}>Negotiable</Text>}
-                    <View style={{ flexDirection: 'row', marginTop: 11 }}><FeatherIcon name="map-pin" size={14} color={colors.text} /><Text style={[FONTS.fontSm, { color: colors.text, marginLeft: 5 }]}>{selectedCity?.name || 'Uganda'}</Text></View>
+                    <View style={{ flexDirection: 'row', marginTop: 11 }}><FeatherIcon name="map-pin" size={14} color={colors.text} /><Text style={[FONTS.fontSm, { color: colors.text, marginLeft: 5 }]}>{selectedLocationLabel || 'Uganda'}</Text></View>
                     <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 14, paddingTop: 13 }}><Text style={[FONTS.fontSm, { color: colors.title, lineHeight: 21 }]}>{description}</Text></View>
                     {categoryFilters.flatMap((filter) => {
                         const value = String(filterValues[filter.key] ?? '');
@@ -717,15 +987,33 @@ const Sell = ({ navigation, route }) => {
         );
     }
 
+    if (!hasPrimaryVerification(user)) {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+                <Header title={isEditing ? 'Edit ad' : 'Post an ad'} leftIcon="back" titleLeft />
+                <View style={[GlobalStyleSheet.container, { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 70 }]}>
+                    <View style={{ height: 74, width: 74, borderRadius: 24, backgroundColor: '#FFF0F0', borderWidth: 1, borderColor: '#F8B4B4', alignItems: 'center', justifyContent: 'center' }}>
+                        <FeatherIcon name="shield" size={32} color="#B42318" />
+                    </View>
+                    <Text style={[FONTS.h5, { color: colors.title, textAlign: 'center', marginTop: 18 }]}>Verify your phone number first</Text>
+                    <Text style={[FONTS.fontSm, { color: colors.text, textAlign: 'center', lineHeight: 21, marginTop: 8, maxWidth: 330 }]}>Primary phone verification is required before you can post, edit or manage ads on QOT.</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('VerifyAccount')} style={{ minHeight: 50, borderRadius: 12, backgroundColor: COLORS.primary, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginTop: 21 }}>
+                        <Text style={[FONTS.font, FONTS.fontTitle, { color: COLORS.white }]}>Verify phone number</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             <Header title={isEditing ? 'Edit ad' : 'Post an ad'} leftIcon="back" titleLeft />
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
                     <View style={[GlobalStyleSheet.container, { paddingTop: 10, paddingBottom: 35 }]}>
                         <View style={{ flexDirection: 'row', marginBottom: 20 }}>
                             {STEPS.map(([icon, label], index) => (
-                                <TouchableOpacity key={label} disabled={index > step} onPress={() => { setError(''); setStep(index); }} style={{ flex: 1, alignItems: 'center' }}>
+                                <TouchableOpacity key={label} disabled={index > step} onPress={() => goToStep(index)} style={{ flex: 1, alignItems: 'center' }}>
                                     <View style={{ height: 35, width: 35, borderRadius: 18, backgroundColor: index <= step ? COLORS.primary : colors.border, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name={index < step ? 'check' : icon} size={16} color={index <= step ? COLORS.white : colors.text} /></View>
                                     <Text numberOfLines={1} style={[FONTS.fontXs, FONTS.fontTitle, { color: index === step ? COLORS.primary : colors.text, fontSize: 9, marginTop: 5 }]}>{label}</Text>
                                     {index < STEPS.length - 1 && <View style={{ position: 'absolute', height: 2, left: '68%', right: '-32%', top: 17, backgroundColor: index < step ? COLORS.primary : colors.border }} />}
@@ -761,7 +1049,7 @@ const Sell = ({ navigation, route }) => {
             </KeyboardAvoidingView>
 
             <MarketplaceSelectionModal visible={categoryModal} title="Choose a category" groups={categoryGroups} selectedId={selectedCategory?.id} onSelect={chooseCategory} onClose={() => setCategoryModal(false)} searchPlaceholder="Search categories" />
-            <MarketplaceSelectionModal visible={locationModal} title="Choose a location" groups={locationGroups} selectedId={selectedCity?.id} onSelect={setSelectedCity} onClose={() => setLocationModal(false)} searchPlaceholder="Search all cities and districts" />
+            <MarketplaceSelectionModal visible={locationModal} title="Choose a location" groups={locationGroups} selectedId={selectedLocationId} onSelect={chooseLocation} onClose={() => setLocationModal(false)} searchPlaceholder="Search areas, cities and districts" />
             <MarketplaceSelectionModal visible={Boolean(activeFilter)} title={activeFilter?.name || 'Choose an option'} groups={[{ title: activeFilter?.name || 'Options', items: (activeFilter?.options || []).map((option) => ({ id: option.value, name: option.label })) }]} selectedId={activeFilter ? filterValues[activeFilter.key] : ''} onSelect={(option) => { updateFilter(activeFilter.key, option.id); setActiveFilter(null); }} onClose={() => setActiveFilter(null)} searchPlaceholder="Search options" />
 
             <Modal visible={photoSourceOpen} transparent animationType="fade" onRequestClose={() => setPhotoSourceOpen(false)}>
@@ -784,6 +1072,11 @@ const Sell = ({ navigation, route }) => {
                                 <Text style={[FONTS.fontXs, { color: colors.text, fontSize: 9, marginTop: 2 }]}>Select several</Text>
                             </TouchableOpacity>
                         </View>
+                        <TouchableOpacity onPress={pickAndCropImage} style={{ minHeight: 52, borderRadius: 14, borderWidth: 1, borderColor: `${COLORS.primary}40`, backgroundColor: `${COLORS.primary}0D`, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, marginTop: 10 }}>
+                            <View style={{ height: 34, width: 34, borderRadius: 11, backgroundColor: `${COLORS.primary}18`, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="crop" size={17} color={COLORS.primary} /></View>
+                            <View style={{ flex: 1, marginLeft: 10 }}><Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>Choose and crop one photo</Text><Text style={[FONTS.fontXs, { color: colors.text, fontSize: 9, marginTop: 1 }]}>Use your phone's cropper for a clean 4:3 ad photo</Text></View>
+                            <FeatherIcon name="chevron-right" size={18} color={COLORS.primary} />
+                        </TouchableOpacity>
                         <Text style={[FONTS.fontXs, { color: colors.text, textAlign: 'center', lineHeight: 17, marginTop: 14 }]}>Photos are optimized and watermarked securely after upload.</Text>
                     </Pressable>
                 </Pressable>
