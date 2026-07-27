@@ -1,6 +1,5 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, StatusBar, StyleSheet, View } from 'react-native';
+import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -13,12 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const SPLASH_BACKGROUND = '#FFFDF9';
-
 const App = () =>{
-		const [showStartupSplash, setShowStartupSplash] = useState(true);
-		const splashOpacity = useRef(new Animated.Value(1)).current;
-
 		const [loaded] = useFonts({
         PoppinsRegular: require('./app/assets/fonts/Poppins-Regular.ttf'),
         PoppinsSemiBold : require('./app/assets/fonts/Poppins-SemiBold.ttf'),
@@ -34,16 +28,8 @@ const App = () =>{
 			if (!loaded) return undefined;
 
 			SplashScreen.hideAsync().catch(() => {});
-			const holdTimer = setTimeout(() => {
-				Animated.timing(splashOpacity, {
-					toValue: 0,
-					duration: 240,
-					useNativeDriver: true,
-				}).start(() => setShowStartupSplash(false));
-			}, 950);
-
-			return () => clearTimeout(holdTimer);
-		}, [loaded, splashOpacity]);
+			return undefined;
+		}, [loaded]);
 
 		if(!loaded){
 		  return null;
@@ -61,35 +47,8 @@ const App = () =>{
               </AuthProvider>
             </QueryCacheProvider>
           </SafeAreaProvider>
-		  {showStartupSplash ? (
-			<Animated.View
-				pointerEvents="none"
-				style={[styles.startupSplash, { opacity: splashOpacity }]}
-			>
-				<StatusBar backgroundColor={SPLASH_BACKGROUND} barStyle="dark-content" translucent={false} />
-				<Image
-					source={require('./app/assets/images/qot-logo.png')}
-					style={styles.startupLogo}
-					resizeMode="contain"
-				/>
-			</Animated.View>
-		  ) : null}
         </GestureHandlerRootView>
     );
 };
-
-const styles = StyleSheet.create({
-	startupSplash: {
-		...StyleSheet.absoluteFillObject,
-		zIndex: 10000,
-		backgroundColor: SPLASH_BACKGROUND,
-		alignItems: 'center',
-		justifyContent: 'center',
-	},
-	startupLogo: {
-		width: 220,
-		height: 96,
-	},
-});
 
 export default App;
