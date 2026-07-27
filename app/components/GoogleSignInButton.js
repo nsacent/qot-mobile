@@ -12,6 +12,32 @@ import { useTheme } from '@react-navigation/native';
 import { COLORS, FONTS, IMAGES } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 
+let configuredWebClientId = '';
+
+const googleSignInErrorMessage = (error) => {
+    const code = String(error?.code || '').trim();
+    const message = String(error?.message || '').trim();
+    const diagnostic = `${code} ${message}`;
+
+    if (/native module|RNGoogleSignin|TurboModule|development build/i.test(diagnostic)) {
+        return 'Google sign-in needs the installed QOT Android app. It is not available in Expo Go.';
+    }
+    if (code === 'IN_PROGRESS') {
+        return 'Google sign-in is already open. Complete or close it, then try again.';
+    }
+    if (code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        return 'Google Play Services is unavailable or needs updating on this phone.';
+    }
+    if (/DEVELOPER_ERROR|ApiException:\s*10|\bcode\s*[:=]?\s*10\b/i.test(diagnostic) || code === '10') {
+        return 'Google sign-in is still activating for this QOT build. Please try again in a few minutes.';
+    }
+    if (/NETWORK_ERROR|network request failed|unable to resolve host|timeout/i.test(diagnostic)) {
+        return 'Google sign-in could not reach the internet. Check your connection and try again.';
+    }
+
+    return 'Google sign-in could not be completed. Please try again.';
+};
+
 const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
     const { colors } = useTheme();
     const { signInWithGoogle } = useAuth();
@@ -40,11 +66,14 @@ const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
             // Loaded only when pressed so Expo Go can still run the rest of the app.
             // The native Google module is included in development and production APKs.
             const { GoogleSignin } = require('@react-native-google-signin/google-signin');
-            GoogleSignin.configure({
-                webClientId,
-                ...(iosClientId ? { iosClientId } : {}),
-                offlineAccess: false,
-            });
+            if (configuredWebClientId !== webClientId) {
+                GoogleSignin.configure({
+                    webClientId,
+                    ...(iosClientId ? { iosClientId } : {}),
+                    offlineAccess: false,
+                });
+                configuredWebClientId = webClientId;
+            }
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
             const response = await GoogleSignin.signIn();
 
@@ -63,11 +92,9 @@ const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
                 routes: [{ name: 'DrawerNavigation' }],
             });
         } catch (signInError) {
-            const message = String(signInError?.message || '');
-            const needsNativeBuild = /native module|RNGoogleSignin|TurboModule|development build/i.test(message);
-            setError(needsNativeBuild
-                ? 'Google sign-in needs the QOT APK or a development build. Use phone/email while testing in Expo Go.'
-                : message || 'Google sign-in failed. Please try again.');
+            const code = String(signInError?.code || '');
+            if (code === 'SIGN_IN_CANCELLED' || code === '12501') return;
+            setError(googleSignInErrorMessage(signInError));
         } finally {
             setLoading(false);
         }
