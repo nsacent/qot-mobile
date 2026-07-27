@@ -136,6 +136,11 @@ export const getListing = (id, { force = false } = {}) => cachedQuery({
     force,
 });
 
+export const trackListingShare = (listingId) => apiRequest(
+    `/listings/${listingId}/share/`,
+    { method: 'POST' },
+);
+
 export const reportListing = (listingId, { reason, description = '' }) => (
     apiRequest(`/listings/${listingId}/report/`, {
         method: 'POST',

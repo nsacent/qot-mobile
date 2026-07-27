@@ -24,7 +24,7 @@ import ReportAdModal from '../../components/ReportAdModal';
 import AdPhotoGallery from '../../components/AdPhotoGallery';
 import BuyerContactModal from '../../components/BuyerContactModal';
 import CachedImage from '../../components/CachedImage';
-import { getListing, getListingsPage } from '../../api/marketplace';
+import { getListing, getListingsPage, trackListingShare } from '../../api/marketplace';
 import { followSeller, getSeller, unfollowSeller } from '../../api/account';
 import { createChatThread, sendChatOffer } from '../../api/chats';
 import { formatDate, formatPrice, formatRelativeTime } from '../../utils/formatters';
@@ -126,9 +126,14 @@ const ItemDetails = ({ route, navigation }) => {
 
     const shareListing = async () => {
         if (!listing) return;
-        await Share.share({
+        const result = await Share.share({
             message: `${listing.title} on QOT\nhttps://qot.ug/ads/${listing.id}`,
         });
+        if (result.action === Share.sharedAction) {
+            trackListingShare(listing.id).catch(() => {
+                // Sharing must remain successful when analytics is unavailable.
+            });
+        }
     };
 
     const openContact = async (scheme) => {
@@ -311,12 +316,22 @@ const ItemDetails = ({ route, navigation }) => {
                             )}
                         </View>
                         <Text style={[FONTS.h5, FONTS.fontMedium, { color: colors.title, marginBottom: 8 }] }>{listing.title}</Text>
-                        <Text style={[FONTS.h4, { color: COLORS.primary, marginBottom: 14 }] }>
-                            {formatPrice(listing.price, listing.currency)}
-                        </Text>
-                        {listing.is_negotiable && (
-                            <View style={{ alignSelf: 'flex-start', borderRadius: 7, backgroundColor: `${COLORS.primary}10`, paddingHorizontal: 8, paddingVertical: 4, marginTop: -9, marginBottom: 14 }}><Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.primary }]}>Price is negotiable</Text></View>
-                        )}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap', minWidth: 0, marginBottom: 14 }}>
+                            <Text
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.75}
+                                maxFontSizeMultiplier={1.2}
+                                style={[FONTS.h4, { flexShrink: 1, minWidth: 0, color: COLORS.primary }]}
+                            >
+                                {formatPrice(listing.price, listing.currency)}
+                            </Text>
+                            {listing.is_negotiable && (
+                                <View style={{ flexShrink: 0, borderRadius: 7, backgroundColor: `${COLORS.primary}10`, paddingHorizontal: 7, paddingVertical: 3, marginLeft: 7 }}>
+                                    <Text numberOfLines={1} maxFontSizeMultiplier={1.1} style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.primary, fontSize: 9 }]}>NEGOTIABLE</Text>
+                                </View>
+                            )}
+                        </View>
 
                         <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: colors.borderColor, borderRadius: 12, paddingVertical: 13, marginBottom: 20 }}>
                             {[

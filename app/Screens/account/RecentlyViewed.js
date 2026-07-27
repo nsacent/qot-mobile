@@ -174,9 +174,34 @@ const RecentlyViewed = ({ navigation }) => {
                 <View style={{ flex: 1, minWidth: 0, paddingHorizontal: 11, paddingVertical: 9 }}>
                     <Text numberOfLines={1} style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.primary, textTransform: 'uppercase', fontSize: 8 }]}>{item.category_name || 'AD'}</Text>
                     <Text numberOfLines={2} style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, lineHeight: 18, marginTop: 2 }]}>{item.title}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                        <Text numberOfLines={1} style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary, flexShrink: 1 }]}>{formatPrice(item.price, item.currency)}</Text>
-                        {item.is_negotiable && <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.primary, backgroundColor: `${COLORS.primary}10`, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2, marginLeft: 5, fontSize: 7 }]}>NEGOTIABLE</Text>}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap', minWidth: 0, marginTop: 4 }}>
+                        <Text
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.72}
+                            maxFontSizeMultiplier={1.15}
+                            style={[FONTS.fontSm, FONTS.fontTitle, { flex: 1, minWidth: 0, color: COLORS.primary }]}
+                        >
+                            {formatPrice(item.price, item.currency)}
+                        </Text>
+                        {item.is_negotiable && (
+                            <Text
+                                numberOfLines={1}
+                                maxFontSizeMultiplier={1.1}
+                                style={[FONTS.fontXs, FONTS.fontTitle, {
+                                    flexShrink: 0,
+                                    color: COLORS.primary,
+                                    backgroundColor: `${COLORS.primary}10`,
+                                    borderRadius: 5,
+                                    paddingHorizontal: 4,
+                                    paddingVertical: 2,
+                                    marginLeft: 4,
+                                    fontSize: 7,
+                                }]}
+                            >
+                                NEGOTIABLE
+                            </Text>
+                        )}
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                         <FeatherIcon name="map-pin" size={11} color={colors.textLight} />

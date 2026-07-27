@@ -7,16 +7,11 @@
       "qot",
       "fb2278313346334664"
     ],
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon-qot.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./app/assets/images/qot-logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FFFDF9"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ug.qot.mobile",
@@ -25,7 +20,7 @@
       ]
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon-qot.png",
         "backgroundColor": "#FFFDF9"
@@ -81,7 +76,7 @@
         "expo-splash-screen",
         {
           "image": "./app/assets/images/qot-logo.png",
-          "imageWidth": 220,
+          "imageWidth": 180,
           "resizeMode": "contain",
           "backgroundColor": "#FFFDF9"
         }

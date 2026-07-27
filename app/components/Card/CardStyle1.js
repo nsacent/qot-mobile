@@ -92,9 +92,34 @@ const CardStyle1 = ({ item, list, onFavoriteChange, onFavoriteError }) => {
                         >
                             {item.title}
                         </Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <Text style={[FONTS.h5, { fontSize: 15, color: COLORS.primary }]}>{formatPrice(item.price, item.currency)}</Text>
-                            {item.is_negotiable && <Text style={[FONTS.fontXs, FONTS.fontTitle, { fontSize: 8, color: COLORS.primary, backgroundColor: `${COLORS.primary}10`, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2, marginLeft: 5 }]}>NEGOTIABLE</Text>}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap', minWidth: 0 }}>
+                            <Text
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.72}
+                                maxFontSizeMultiplier={1.15}
+                                style={[FONTS.h5, { flex: 1, minWidth: 0, fontSize: 15, color: COLORS.primary }]}
+                            >
+                                {formatPrice(item.price, item.currency)}
+                            </Text>
+                            {item.is_negotiable && (
+                                <Text
+                                    numberOfLines={1}
+                                    maxFontSizeMultiplier={1.1}
+                                    style={[FONTS.fontXs, FONTS.fontTitle, {
+                                        flexShrink: 0,
+                                        fontSize: 7,
+                                        color: COLORS.primary,
+                                        backgroundColor: `${COLORS.primary}10`,
+                                        borderRadius: 5,
+                                        paddingHorizontal: 4,
+                                        paddingVertical: 2,
+                                        marginLeft: 4,
+                                    }]}
+                                >
+                                    NEGOTIABLE
+                                </Text>
+                            )}
                         </View>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 7, minWidth: 0 }}>

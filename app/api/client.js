@@ -55,7 +55,10 @@ const refreshAccessToken = async () => {
         refreshPromise = (async () => {
             const response = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-QOT-Platform': 'android',
+                },
                 body: JSON.stringify({ refresh }),
             });
             const data = await parseResponse(response);
@@ -91,6 +94,7 @@ export const apiRequest = async (path, options = {}) => {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     const requestHeaders = {
         Accept: 'application/json',
+        'X-QOT-Platform': 'android',
         ...(!isFormData && body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...headers,
     };
