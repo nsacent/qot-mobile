@@ -4,8 +4,6 @@ import {
     Alert,
     FlatList,
     Image,
-    Keyboard,
-    KeyboardAvoidingView,
     Linking,
     Modal,
     Platform,
@@ -18,6 +16,10 @@ import {
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+    KeyboardAvoidingView,
+    useKeyboardState,
+} from 'react-native-keyboard-controller';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
@@ -160,7 +162,7 @@ const SingleChat = ({ route, navigation }) => {
     const bottomSafeInset = Platform.OS === 'android'
         ? Math.max(insets.bottom, 32)
         : Math.max(insets.bottom, 8);
-    const [keyboardVisible, setKeyboardVisible] = useState(false);
+    const keyboardVisible = useKeyboardState((state) => state.isVisible);
     const { user } = useAuth();
     const threadId = route.params?.threadId || route.params?.thread?.id;
     const [thread, setThread] = useState(route.params?.thread || null);
@@ -190,17 +192,6 @@ const SingleChat = ({ route, navigation }) => {
     const composerRef = useRef(null);
     const socketRef = useRef(null);
 
-    useEffect(() => {
-        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-        const showSubscription = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
-        const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
-
-        return () => {
-            showSubscription.remove();
-            hideSubscription.remove();
-        };
-    }, []);
     const typingTimerRef = useRef(null);
 
     const loadChat = useCallback(async () => {
@@ -723,7 +714,7 @@ const SingleChat = ({ route, navigation }) => {
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior="translate-with-padding"
                 keyboardVerticalOffset={0}
             >
                 <View style={{ minHeight: 68, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.borderColor, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 }}>

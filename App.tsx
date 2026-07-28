@@ -9,6 +9,7 @@ import { NotificationProvider } from './app/context/NotificationContext';
 import ConnectionBanner from './app/components/ConnectionBanner';
 import { QueryCacheProvider } from './app/cache/queryCache';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -37,16 +38,18 @@ const App = () =>{
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <SafeAreaProvider>
-            <QueryCacheProvider>
-              <AuthProvider>
-                <NotificationProvider>
-                  <Routes/>
-                  <ConnectionBanner/>
-                </NotificationProvider>
-              </AuthProvider>
-            </QueryCacheProvider>
-          </SafeAreaProvider>
+          <KeyboardProvider preload={false}>
+            <SafeAreaProvider>
+              <QueryCacheProvider>
+                <AuthProvider>
+                  <NotificationProvider>
+                    <Routes/>
+                    <ConnectionBanner/>
+                  </NotificationProvider>
+                </AuthProvider>
+              </QueryCacheProvider>
+            </SafeAreaProvider>
+          </KeyboardProvider>
         </GestureHandlerRootView>
     );
 };
