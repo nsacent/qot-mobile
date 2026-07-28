@@ -7,7 +7,7 @@
       "qot",
       "fb2278313346334664"
     ],
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon-qot.png",
     "userInterfaceStyle": "light",
@@ -20,10 +20,10 @@
       ]
     },
     "android": {
-      "versionCode": 9,
+      "versionCode": 10,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon-qot.png",
-        "backgroundColor": "#FFFDF9"
+        "backgroundColor": "#FFF7F2"
       },
       "edgeToEdgeEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
@@ -61,11 +61,11 @@
     },
     "androidStatusBar": {
       "translucent": false,
-      "backgroundColor": "#FFFDF9",
+      "backgroundColor": "#FFF7F2",
       "barStyle": "dark-content"
     },
     "androidNavigationBar": {
-      "backgroundColor": "#FFFDF9",
+      "backgroundColor": "#FFF7F2",
       "barStyle": "dark-content"
     },
     "extra": {
@@ -82,7 +82,7 @@
           "image": "./app/assets/images/qot-logo.png",
           "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFDF9"
+          "backgroundColor": "#FFF7F2"
         }
       ],
       "expo-secure-store",

@@ -94,10 +94,10 @@ const Routes = () => {
     <themeContext.Provider value={authContext}>
       <StatusBar
         translucent={false}
-        backgroundColor={theme.colors.card}
+        backgroundColor={theme.colors.background}
         barStyle={isDarkTheme ? 'light-content' : 'dark-content'}
       />
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: theme.colors.card }}>
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <NavigationContainer theme={theme} linking={linking}>
           <StackNavigator/>
         </NavigationContainer>
