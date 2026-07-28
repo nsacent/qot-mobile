@@ -10,7 +10,7 @@ const Sidebar = ({ navigation }) => {
 
     const theme = useTheme();
     const { colors } = theme;
-    const { user, signOut } = useAuth();
+    const { user } = useAuth();
 
     const navItem = [
         {
@@ -72,11 +72,6 @@ const Sidebar = ({ navigation }) => {
             icon: "user",
             name: "Profile",
             navigate: "Profile",
-        },
-        {
-            icon: "log-out",
-            name: "Logout",
-            action: 'logout',
         },
     ]
 
@@ -147,13 +142,7 @@ const Sidebar = ({ navigation }) => {
                         {navItem.map((data, index) => {
                             return (
                                 <TouchableOpacity
-                                    onPress={async () => {
-                                        if (data.action === 'logout') {
-                                            await signOut();
-                                            const rootNavigation = navigation.getParent();
-                                            rootNavigation?.reset({ index: 0, routes: [{ name: 'SignIn' }] });
-                                            return;
-                                        }
+                                    onPress={() => {
                                         data.navigate == "Account" ?
                                             navigation.navigate('BottomNavigation', { screen: data.navigate })
                                             :

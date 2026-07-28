@@ -22,7 +22,7 @@ import useBottomTabContentPadding from '../../utils/useBottomTabContentPadding';
 const Profile = ({ navigation }) => {
     const { colors } = useTheme();
     const bottomContentPadding = useBottomTabContentPadding(105);
-    const { user, refreshUser, signOut } = useAuth();
+    const { user, refreshUser } = useAuth();
     const [ads, setAds] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -70,11 +70,6 @@ const Profile = ({ navigation }) => {
         userId: user?.id,
         initialTab,
     });
-
-    const handleSignOut = async () => {
-        await signOut();
-        navigation.getParent()?.getParent()?.reset({ index: 0, routes: [{ name: 'SignIn' }] });
-    };
 
     const shareProfile = () => {
         if (!user?.id) return;
@@ -355,13 +350,6 @@ const Profile = ({ navigation }) => {
                         ))}
                     </View>
 
-                    <TouchableOpacity
-                        onPress={handleSignOut}
-                        style={{ height: 50, borderWidth: 1, borderColor: COLORS.danger, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 18 }}
-                    >
-                        <FeatherIcon name="log-out" size={18} color={COLORS.danger} />
-                        <Text style={[FONTS.font, FONTS.fontTitle, { color: COLORS.danger, marginLeft: 8 }]}>Sign out</Text>
-                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </SafeAreaView>

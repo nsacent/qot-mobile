@@ -7,7 +7,7 @@
       "qot",
       "fb2278313346334664"
     ],
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/icon-qot.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
       ]
     },
     "android": {
-      "versionCode": 10,
+      "versionCode": 11,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon-qot.png",
         "backgroundColor": "#FFF7F2"
