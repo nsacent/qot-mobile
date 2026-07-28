@@ -17,9 +17,11 @@ import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { getMyListings } from '../../api/marketplace';
 import { formatDate } from '../../utils/formatters';
+import useBottomTabContentPadding from '../../utils/useBottomTabContentPadding';
 
 const Profile = ({ navigation }) => {
     const { colors } = useTheme();
+    const bottomContentPadding = useBottomTabContentPadding(105);
     const { user, refreshUser, signOut } = useAuth();
     const [ads, setAds] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -214,7 +216,7 @@ const Profile = ({ navigation }) => {
                         colors={[COLORS.primary]}
                     />
                 )}
-                contentContainerStyle={{ paddingBottom: 105 }}
+                contentContainerStyle={{ paddingBottom: bottomContentPadding }}
             >
                 <View style={GlobalStyleSheet.container}>
                     {!user?.phone_verified && (

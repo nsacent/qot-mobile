@@ -26,6 +26,7 @@ import {
     recordRecentSearch,
     removeRecentSearch,
 } from '../../utils/recentSearches';
+import useBottomTabContentPadding from '../../utils/useBottomTabContentPadding';
 
 const emptyHome = {
     featured_listings: [],
@@ -38,6 +39,7 @@ const HOME_AD_LIMIT = 200;
 
 const HomeScreen = ({ navigation }) => {
     const { colors } = useTheme();
+    const bottomContentPadding = useBottomTabContentPadding(80);
     const { unreadCount, refreshNotifications } = useNotifications();
     const { isAuthenticated } = useAuth();
     const [home, setHome] = useState(emptyHome);
@@ -230,7 +232,7 @@ const HomeScreen = ({ navigation }) => {
                             colors={[COLORS.primary]}
                         />
                     )}
-                    contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }}
+                    contentContainerStyle={{ flexGrow: 1, paddingBottom: bottomContentPadding }}
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={[GlobalStyleSheet.container, { paddingTop: 10, flex: 1 }] }>

@@ -23,6 +23,7 @@ import {
     getSavedSearches,
     updateSavedSearch,
 } from '../../api/marketplace';
+import useBottomTabContentPadding from '../../utils/useBottomTabContentPadding';
 
 const filterLabels = {
     category: 'Category',
@@ -45,6 +46,7 @@ const formatFilterValue = (key, value) => {
 
 const Saved = ({ navigation, route }) => {
     const { colors } = useTheme();
+    const bottomContentPadding = useBottomTabContentPadding(105);
     const [tab, setTab] = useState('ads');
     const [favorites, setFavorites] = useState([]);
     const [savedSearches, setSavedSearches] = useState([]);
@@ -158,7 +160,7 @@ const Saved = ({ navigation, route }) => {
                     data={tab === 'ads' ? favorites : savedSearches}
                     keyExtractor={(item) => String(item.id)}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
-                    contentContainerStyle={{ padding: 15, paddingTop: 3, paddingBottom: 105, flexGrow: 1 }}
+                    contentContainerStyle={{ padding: 15, paddingTop: 3, paddingBottom: bottomContentPadding, flexGrow: 1 }}
                     ListHeaderComponent={error ? <TouchableOpacity onPress={() => loadData()} style={{ backgroundColor: '#FDECEC', borderRadius: 11, padding: 12, marginBottom: 13 }}><Text style={[FONTS.fontSm, { color: COLORS.danger, textAlign: 'center' }]}>{error} Tap to retry.</Text></TouchableOpacity> : null}
                     ListEmptyComponent={empty && !error ? (
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>

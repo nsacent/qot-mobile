@@ -26,6 +26,7 @@ import {
 } from '../../api/chats';
 import { formatRelativeTime } from '../../utils/formatters';
 import Header from '../../layout/Header';
+import useBottomTabContentPadding from '../../utils/useBottomTabContentPadding';
 
 const folders = [
     { id: 'all', label: 'All' },
@@ -47,6 +48,7 @@ const listingImage = (thread) => (
 
 const Chat = ({ navigation }) => {
     const { colors } = useTheme();
+    const bottomContentPadding = useBottomTabContentPadding(95);
     const [folder, setFolder] = useState('all');
     const [search, setSearch] = useState('');
     const [threads, setThreads] = useState([]);
@@ -344,7 +346,7 @@ const Chat = ({ navigation }) => {
                     keyExtractor={(item) => String(item.id)}
                     renderItem={renderThread}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ flexGrow: 1, paddingTop: 2, paddingBottom: 95 }}
+                    contentContainerStyle={{ flexGrow: 1, paddingTop: 2, paddingBottom: bottomContentPadding }}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadThreads(true)} tintColor={COLORS.primary} colors={[COLORS.primary]} />}
                     ListEmptyComponent={(
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 36 }}>

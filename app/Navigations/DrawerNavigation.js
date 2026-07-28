@@ -1,7 +1,7 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import BottomNavigation from './BottomNavigation';
-import { SafeAreaView } from 'react-native';
+import { View } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import Sidebar from '../layout/Sidebar';
 
@@ -12,7 +12,7 @@ const DrawerNavigation = (props) => {
     const {colors} = useTheme();
 
     return (
-        <SafeAreaView style={{flex:1,backgroundColor:colors.card}}>
+        <View style={{flex:1,backgroundColor:colors.card}}>
             <Drawer.Navigator
                 initialRouteName='BottomNavigation'
                 screenOptions={{
@@ -24,7 +24,7 @@ const DrawerNavigation = (props) => {
             >
                 <Drawer.Screen name='BottomNavigation' component={BottomNavigation}/>
             </Drawer.Navigator>
-        </SafeAreaView>
+        </View>
     );
 };
 

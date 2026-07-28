@@ -69,6 +69,7 @@ const BottomNavigation = () => {
                     />
                 ),
                 tabBarStyle: {
+                    position: 'relative',
                     height: 58 + Math.max(insets.bottom, 4),
                     paddingTop: 5,
                     paddingBottom: Math.max(insets.bottom, 4),
