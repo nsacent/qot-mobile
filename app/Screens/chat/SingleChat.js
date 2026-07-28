@@ -714,7 +714,7 @@ const SingleChat = ({ route, navigation }) => {
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior="translate-with-padding"
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={0}
             >
                 <View style={{ minHeight: 68, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.borderColor, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 }}>
