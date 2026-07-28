@@ -723,7 +723,8 @@ const SingleChat = ({ route, navigation }) => {
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                enabled={Platform.OS === 'ios'}
                 keyboardVerticalOffset={0}
             >
                 <View style={{ minHeight: 68, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.borderColor, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 }}>
@@ -823,7 +824,7 @@ const SingleChat = ({ route, navigation }) => {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    <View style={{ minHeight: 64, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 10, paddingTop: 8, paddingBottom: keyboardVisible ? 8 : bottomSafeInset, flexDirection: 'row', alignItems: 'flex-end', marginBottom: Platform.OS === 'android' && keyboardVisible ? Math.max(insets.bottom + 12, 32) : 0 }}>
+                    <View style={{ minHeight: 64, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 10, paddingTop: 8, paddingBottom: keyboardVisible ? 8 : bottomSafeInset, flexDirection: 'row', alignItems: 'flex-end' }}>
                         <TouchableOpacity disabled={sending || attachments.length >= 5} onPress={chooseAttachments} style={{ height: 45, width: 42, alignItems: 'center', justifyContent: 'center', opacity: sending || attachments.length >= 5 ? 0.4 : 1 }}>
                             <FeatherIcon name="paperclip" size={21} color={colors.text} />
                         </TouchableOpacity>
