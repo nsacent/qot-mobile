@@ -110,6 +110,16 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     }, []);
 
+    const freezeAccount = useCallback(async () => {
+        const userId = getSession()?.user?.id;
+        const result = await authApi.freezeAccount();
+        await clearSession();
+        clearSessionCache();
+        await clearPrivateDeviceCache(userId).catch(() => {});
+        setUser(null);
+        return result;
+    }, []);
+
     const refreshUser = useCallback(async () => {
         const currentUser = await authApi.getCurrentUser();
         await saveSession({ ...getSession(), user: currentUser });
@@ -136,6 +146,7 @@ export const AuthProvider = ({ children }) => {
         signInWithFacebook,
         signInWithGoogle,
         signOut,
+        freezeAccount,
         refreshUser,
         updateCurrentUser,
     }), [
@@ -148,6 +159,7 @@ export const AuthProvider = ({ children }) => {
         signInWithFacebook,
         signInWithGoogle,
         signOut,
+        freezeAccount,
         refreshUser,
         updateCurrentUser,
     ]);

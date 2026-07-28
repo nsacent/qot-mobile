@@ -157,6 +157,9 @@ const ConfirmationModal = ({
 const SingleChat = ({ route, navigation }) => {
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
+    const bottomSafeInset = Platform.OS === 'android'
+        ? Math.max(insets.bottom, 32)
+        : Math.max(insets.bottom, 8);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const { user } = useAuth();
     const threadId = route.params?.threadId || route.params?.thread?.id;
@@ -810,7 +813,7 @@ const SingleChat = ({ route, navigation }) => {
                 )}
 
                 {blockedByMe ? (
-                    <View style={{ minHeight: 70, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{ minHeight: 70, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 14, paddingTop: 10, paddingBottom: keyboardVisible ? 10 : bottomSafeInset, flexDirection: 'row', alignItems: 'center' }}>
                         <View style={{ height: 38, width: 38, borderRadius: 13, backgroundColor: `${COLORS.danger}12`, alignItems: 'center', justifyContent: 'center' }}>
                             <FeatherIcon name="slash" size={17} color={COLORS.danger} />
                         </View>
@@ -820,7 +823,7 @@ const SingleChat = ({ route, navigation }) => {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    <View style={{ minHeight: 64, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'flex-end', marginBottom: Platform.OS === 'android' && keyboardVisible ? Math.max(insets.bottom + 12, 32) : 0 }}>
+                    <View style={{ minHeight: 64, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 10, paddingTop: 8, paddingBottom: keyboardVisible ? 8 : bottomSafeInset, flexDirection: 'row', alignItems: 'flex-end', marginBottom: Platform.OS === 'android' && keyboardVisible ? Math.max(insets.bottom + 12, 32) : 0 }}>
                         <TouchableOpacity disabled={sending || attachments.length >= 5} onPress={chooseAttachments} style={{ height: 45, width: 42, alignItems: 'center', justifyContent: 'center', opacity: sending || attachments.length >= 5 ? 0.4 : 1 }}>
                             <FeatherIcon name="paperclip" size={21} color={colors.text} />
                         </TouchableOpacity>
@@ -956,7 +959,7 @@ const SingleChat = ({ route, navigation }) => {
 
             <Modal transparent visible={optionsOpen} animationType="fade" onRequestClose={() => setOptionsOpen(false)}>
                 <TouchableOpacity activeOpacity={1} onPress={() => !actionLoading && setOptionsOpen(false)} style={{ flex: 1, backgroundColor: 'rgba(15,23,42,.46)', justifyContent: 'flex-end' }}>
-                    <TouchableOpacity activeOpacity={1} style={{ backgroundColor: colors.card, borderTopLeftRadius: 25, borderTopRightRadius: 25, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 32 }}>
+                    <TouchableOpacity activeOpacity={1} style={{ backgroundColor: colors.card, borderTopLeftRadius: 25, borderTopRightRadius: 25, paddingHorizontal: 18, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 32) }}>
                         <View style={{ width: 42, height: 4, borderRadius: 2, backgroundColor: colors.borderColor, alignSelf: 'center', marginBottom: 16 }} />
                         <Text style={[FONTS.h6, { color: colors.title, marginBottom: 10 }]}>Conversation options</Text>
                         {[

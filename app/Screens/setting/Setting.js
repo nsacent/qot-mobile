@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Image,
     Linking,
+    Modal,
+    Pressable,
     SafeAreaView,
     ScrollView,
     Text,
@@ -16,6 +19,7 @@ import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { Image as ExpoImage } from 'expo-image';
+import Constants from 'expo-constants';
 import { clearQueryCache } from '../../cache/queryCache';
 
 const QuickTile = ({ icon, title, detail, color, background, onPress }) => {
@@ -64,7 +68,10 @@ const SettingRow = ({ icon, title, detail, badge, danger, onPress, first = false
 
 const Setting = ({ navigation }) => {
     const { colors } = useTheme();
-    const { user, signOut } = useAuth();
+    const { user, signOut, freezeAccount } = useAuth();
+    const [freezeOpen, setFreezeOpen] = useState(false);
+    const [freezing, setFreezing] = useState(false);
+    const [freezeError, setFreezeError] = useState('');
     const phoneVerified = Boolean(user?.phone_verified || user?.phone_verified_at);
     const emailVerified = Boolean(user?.email_verified || user?.email_verified_at);
     const location = user?.profile?.default_area_name || user?.profile?.default_city_name
@@ -114,6 +121,21 @@ const Setting = ({ navigation }) => {
                 },
             ],
         );
+    };
+
+    const handleFreezeAccount = async () => {
+        setFreezing(true);
+        setFreezeError('');
+
+        try {
+            await freezeAccount();
+            setFreezeOpen(false);
+            navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+        } catch (requestError) {
+            setFreezeError(requestError.message || 'Your account could not be frozen. Please try again.');
+        } finally {
+            setFreezing(false);
+        }
     };
 
     return (
@@ -207,13 +229,58 @@ const Setting = ({ navigation }) => {
                         <SettingRow icon="phone" title="Call QOT" detail="0200 911 678" onPress={() => Linking.openURL('tel:0200911678')} />
                     </View>
 
+                    <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, textTransform: 'uppercase', letterSpacing: 0.65, marginTop: 23, marginBottom: 9 }]}>Account access</Text>
+                    <View style={{ borderRadius: 16, borderWidth: 1, borderColor: '#F3B4B4', overflow: 'hidden' }}>
+                        <SettingRow
+                            first
+                            icon="pause-circle"
+                            title="Freeze account"
+                            detail="Temporarily hide your profile and ads"
+                            danger
+                            onPress={() => {
+                                setFreezeError('');
+                                setFreezeOpen(true);
+                            }}
+                        />
+                    </View>
+
                     <TouchableOpacity onPress={confirmSignOut} style={{ minHeight: 50, borderRadius: 13, borderWidth: 1, borderColor: '#F3B4B4', backgroundColor: '#FFF7F7', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 24 }}>
                         <FeatherIcon name="log-out" size={17} color="#B42318" />
                         <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: '#B42318', marginLeft: 8 }]}>Sign out</Text>
                     </TouchableOpacity>
-                    <Text style={[FONTS.fontXs, { color: colors.textLight, textAlign: 'center', marginTop: 14 }]}>QOT · Version 1.0.0</Text>
+                    <Text style={[FONTS.fontXs, { color: colors.textLight, textAlign: 'center', marginTop: 14 }]}>QOT · Version {Constants.expoConfig?.version || '1.0.3'}</Text>
                 </View>
             </ScrollView>
+
+            <Modal transparent visible={freezeOpen} animationType="fade" statusBarTranslucent onRequestClose={() => !freezing && setFreezeOpen(false)}>
+                <Pressable onPress={() => !freezing && setFreezeOpen(false)} style={{ flex: 1, padding: 20, backgroundColor: 'rgba(15,23,42,.62)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 410, borderRadius: 22, backgroundColor: colors.card, padding: 19 }}>
+                        <View style={{ height: 54, width: 54, borderRadius: 18, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center' }}>
+                            <FeatherIcon name="pause-circle" size={24} color="#B42318" />
+                        </View>
+                        <Text style={[FONTS.h5, { color: colors.title, marginTop: 15 }]}>Freeze your QOT account?</Text>
+                        <Text style={[FONTS.fontSm, { color: colors.text, lineHeight: 21, marginTop: 7 }]}>Your profile and ads will be hidden, notifications will stop, and you will be signed out on all devices.</Text>
+                        <View style={{ borderRadius: 12, backgroundColor: `${COLORS.primary}0D`, padding: 11, marginTop: 13, flexDirection: 'row' }}>
+                            <FeatherIcon name="refresh-cw" size={16} color={COLORS.primary} style={{ marginTop: 1 }} />
+                            <Text style={[FONTS.fontXs, { color: colors.title, lineHeight: 18, flex: 1, marginLeft: 8 }]}>This is reversible. Sign in with your phone OTP whenever you want to reactivate the account.</Text>
+                        </View>
+                        {Boolean(freezeError) && (
+                            <View style={{ borderRadius: 11, backgroundColor: '#FDECEC', padding: 10, marginTop: 12 }}>
+                                <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.danger }]}>{freezeError}</Text>
+                            </View>
+                        )}
+                        <View style={{ flexDirection: 'row', gap: 9, marginTop: 18 }}>
+                            <TouchableOpacity disabled={freezing} onPress={() => setFreezeOpen(false)} style={{ flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: colors.borderColor, alignItems: 'center', justifyContent: 'center' }}>
+                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>Keep account</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity disabled={freezing} onPress={handleFreezeAccount} style={{ flex: 1, height: 48, borderRadius: 12, backgroundColor: '#B42318', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', opacity: freezing ? 0.7 : 1 }}>
+                                {freezing && <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 7 }} />}
+                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.white }]}>Freeze account</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 };

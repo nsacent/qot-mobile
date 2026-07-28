@@ -4,6 +4,7 @@ import {
     FlatList,
     Image,
     Modal,
+    Platform,
     Pressable,
     RefreshControl,
     SafeAreaView,
@@ -14,6 +15,7 @@ import {
     View,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import SearchBar from '../../components/SearchBar';
@@ -77,6 +79,10 @@ const flattenCategories = (categories) => categories.flatMap((category) => (
 
 const Items = ({ route, navigation }) => {
     const { colors } = useTheme();
+    const insets = useSafeAreaInsets();
+    const bottomSafeInset = Platform.OS === 'android'
+        ? Math.max(insets.bottom, 32)
+        : Math.max(insets.bottom, 15);
     const { isAuthenticated } = useAuth();
     const { cat = 'All ads', categorySlug, searchQuery = '', savedFilters = {}, nearby = false } = route.params || {};
     const [layout, setLayout] = useState('grid');
@@ -408,7 +414,7 @@ const Items = ({ route, navigation }) => {
                     <Text style={[FONTS.h5, { color: colors.title, flex: 1, marginLeft: 5 }]}>Filter ads</Text>
                     <TouchableOpacity onPress={() => setDraftFilters(emptyFilters())} style={{ padding: 10 }}><Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.danger }]}>Reset</Text></TouchableOpacity>
                 </View>
-                <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[GlobalStyleSheet.container, { paddingTop: 18, paddingBottom: 120 }]}>
+                <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[GlobalStyleSheet.container, { paddingTop: 18, paddingBottom: 120 + bottomSafeInset }]}>
                     <Text style={[FONTS.h6, { color: colors.title, marginBottom: 11 }]}>Price range</Text>
                     <View style={{ flexDirection: 'row', gap: 10 }}>
                         {[['minPrice', 'Minimum price'], ['maxPrice', 'Maximum price']].map(([key, placeholder]) => (
@@ -462,7 +468,7 @@ const Items = ({ route, navigation }) => {
                         );
                     })}
                 </ScrollView>
-                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 15, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor }}>
+                <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 15, paddingTop: 15, paddingBottom: bottomSafeInset, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor }}>
                     <TouchableOpacity onPress={() => { setFilters(draftFilters); setFilterModal(false); }} style={{ height: 52, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' }}><Text style={[FONTS.font, FONTS.fontTitle, { color: COLORS.white }]}>Show {Number(facets.total_count ?? total).toLocaleString()} ads</Text></TouchableOpacity>
                 </View>
             </SafeAreaView>

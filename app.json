@@ -7,7 +7,7 @@
       "qot",
       "fb2278313346334664"
     ],
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon-qot.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
       ]
     },
     "android": {
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon-qot.png",
         "backgroundColor": "#FFFDF9"
@@ -61,6 +61,10 @@
     },
     "androidStatusBar": {
       "translucent": false,
+      "backgroundColor": "#FFFDF9",
+      "barStyle": "dark-content"
+    },
+    "androidNavigationBar": {
       "backgroundColor": "#FFFDF9",
       "barStyle": "dark-content"
     },

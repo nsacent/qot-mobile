@@ -13,6 +13,7 @@ import {
     View,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import Swiper from 'react-native-swiper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,6 +51,10 @@ const displayAttributeValue = (attribute) => {
 const ItemDetails = ({ route, navigation }) => {
     const theme = useTheme();
     const { colors } = theme;
+    const insets = useSafeAreaInsets();
+    const bottomSafeInset = Platform.OS === 'android'
+        ? Math.max(insets.bottom, 32)
+        : Math.max(insets.bottom, 12);
     const { user } = useAuth();
     const listingId = route.params?.listingId;
     const [listing, setListing] = useState(null);
@@ -229,7 +234,7 @@ const ItemDetails = ({ route, navigation }) => {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.card }}>
             <View style={{ flex: 1 }}>
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 95 }}>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 95 + bottomSafeInset }}>
                     <View style={{ height: Platform.OS === 'web' ? SIZES.height / 3.5 : SIZES.height / 2.8 }}>
                         <Swiper
                             loop={false}
@@ -513,7 +518,8 @@ const ItemDetails = ({ route, navigation }) => {
                         flexDirection: 'row',
                         gap: 10,
                         paddingHorizontal: 15,
-                        paddingVertical: 12,
+                        paddingTop: 12,
+                        paddingBottom: bottomSafeInset,
                         backgroundColor: colors.card,
                         borderTopWidth: 1,
                         borderTopColor: colors.borderColor,

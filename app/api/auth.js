@@ -76,6 +76,14 @@ export const logout = (refresh) => (
     })
 );
 
+export const freezeAccount = () => (
+    apiRequest('/auth/account/freeze/', {
+        method: 'POST',
+        authenticated: true,
+        body: { confirmation: true },
+    })
+);
+
 export const sendVerificationCode = (channel = 'phone') => (
     apiRequest('/auth/verification/send/', {
         method: 'POST',

@@ -14,6 +14,7 @@ import {
     View,
 } from 'react-native';
 import { useFocusEffect, useTheme } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
@@ -48,6 +49,7 @@ const listingImage = (thread) => (
 
 const Chat = ({ navigation }) => {
     const { colors } = useTheme();
+    const insets = useSafeAreaInsets();
     const bottomContentPadding = useBottomTabContentPadding(95);
     const [folder, setFolder] = useState('all');
     const [search, setSearch] = useState('');
@@ -364,7 +366,7 @@ const Chat = ({ navigation }) => {
 
             <Modal transparent visible={Boolean(actionThread)} animationType="fade" onRequestClose={() => setActionThread(null)}>
                 <TouchableOpacity activeOpacity={1} onPress={() => !actionLoading && setActionThread(null)} style={{ flex: 1, backgroundColor: 'rgba(15,23,42,.46)', justifyContent: 'flex-end' }}>
-                    <TouchableOpacity activeOpacity={1} style={{ backgroundColor: colors.card, borderTopLeftRadius: 25, borderTopRightRadius: 25, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 32 }}>
+                    <TouchableOpacity activeOpacity={1} style={{ backgroundColor: colors.card, borderTopLeftRadius: 25, borderTopRightRadius: 25, paddingHorizontal: 18, paddingTop: 14, paddingBottom: Math.max(insets.bottom, 32) }}>
                         <View style={{ width: 42, height: 4, borderRadius: 2, backgroundColor: colors.borderColor, alignSelf: 'center', marginBottom: 15 }} />
                         <Text style={[FONTS.h6, { color: colors.title }]}>{actionThread?.other_user_name || 'Chat options'}</Text>
                         <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, marginTop: 2, marginBottom: 12 }]}>{actionThread?.listing?.title}</Text>
