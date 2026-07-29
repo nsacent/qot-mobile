@@ -1,8 +1,32 @@
 module.exports = ({ config }) => {
+    const googleIosClientId = String(
+        process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
+        || config.extra?.googleIosClientId
+        || '',
+    ).trim();
+    const plugins = [...(config.plugins || [])];
+
+    if (
+        googleIosClientId
+        && !plugins.some((plugin) => (
+            Array.isArray(plugin)
+                ? plugin[0] === '@react-native-google-signin/google-signin'
+                : plugin === '@react-native-google-signin/google-signin'
+        ))
+    ) {
+        const iosUrlScheme = `com.googleusercontent.apps.${googleIosClientId.replace(/\.apps\.googleusercontent\.com$/, '')}`;
+        plugins.push([
+            '@react-native-google-signin/google-signin',
+            { iosUrlScheme },
+        ]);
+    }
+
     const resolvedConfig = {
         ...config,
+        plugins,
         extra: {
             ...config.extra,
+            ...(googleIosClientId ? { googleIosClientId } : {}),
         },
     };
 

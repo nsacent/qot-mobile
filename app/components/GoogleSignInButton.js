@@ -12,7 +12,7 @@ import { useTheme } from '@react-navigation/native';
 import { COLORS, FONTS, IMAGES } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 
-let configuredWebClientId = '';
+let configuredClientKey = '';
 
 const googleSignInErrorMessage = (error) => {
     const code = String(error?.code || '').trim();
@@ -20,7 +20,7 @@ const googleSignInErrorMessage = (error) => {
     const diagnostic = `${code} ${message}`;
 
     if (/native module|RNGoogleSignin|TurboModule|development build/i.test(diagnostic)) {
-        return 'Google sign-in needs the installed QOT Android app. It is not available in Expo Go.';
+        return 'Google sign-in needs the installed QOT app. It is not available in Expo Go.';
     }
     if (code === 'IN_PROGRESS') {
         return 'Google sign-in is already open. Complete or close it, then try again.';
@@ -64,17 +64,20 @@ const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
 
         try {
             // Loaded only when pressed so Expo Go can still run the rest of the app.
-            // The native Google module is included in development and production APKs.
+            // The native Google module is included in development and production builds.
             const { GoogleSignin } = require('@react-native-google-signin/google-signin');
-            if (configuredWebClientId !== webClientId) {
+            const clientKey = `${webClientId}:${iosClientId}`;
+            if (configuredClientKey !== clientKey) {
                 GoogleSignin.configure({
                     webClientId,
                     ...(iosClientId ? { iosClientId } : {}),
                     offlineAccess: false,
                 });
-                configuredWebClientId = webClientId;
+                configuredClientKey = clientKey;
             }
-            await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+            if (Platform.OS === 'android') {
+                await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+            }
             const response = await GoogleSignin.signIn();
 
             if (response?.type === 'cancelled') return;

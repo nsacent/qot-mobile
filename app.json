@@ -12,9 +12,17 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ug.qot.mobile",
+      "buildNumber": "12",
       "associatedDomains": [
         "applinks:qot.ug"
-      ]
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow QOT to take photos for your ads and profile.",
+        "NSLocationWhenInUseUsageDescription": "Allow QOT to use your location to show nearby ads and choose your ad area.",
+        "NSPhotoLibraryAddUsageDescription": "Allow QOT to save images you choose to download.",
+        "NSPhotoLibraryUsageDescription": "Allow QOT to choose photos for your ads and profile."
+      }
     },
     "android": {
       "versionCode": 12,
