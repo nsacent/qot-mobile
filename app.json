@@ -3,11 +3,8 @@
     "name": "QOT",
     "slug": "qot-mobile",
     "owner": "nsacent",
-    "scheme": [
-      "qot",
-      "fb2278313346334664"
-    ],
-    "version": "1.0.9",
+    "scheme": "qot",
+    "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/icon-qot.png",
     "userInterfaceStyle": "light",
@@ -20,7 +17,7 @@
       ]
     },
     "android": {
-      "versionCode": 11,
+      "versionCode": 12,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon-qot.png",
         "backgroundColor": "#FFF7F2"
@@ -69,7 +66,6 @@
       "barStyle": "dark-content"
     },
     "extra": {
-      "facebookAppId": "2278313346334664",
       "googleWebClientId": "469848009032-cp7lad868jnfbjcn4qjgifumnqvm99m7.apps.googleusercontent.com",
       "eas": {
         "projectId": "911e4830-a036-4af8-b5a5-26048327e0cc"
@@ -88,7 +84,6 @@
       "expo-secure-store",
       "expo-asset",
       "expo-font",
-      "expo-web-browser",
       [
         "expo-image-picker",
         {

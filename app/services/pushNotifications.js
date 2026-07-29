@@ -4,6 +4,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { apiRequest } from '../api/client';
+import { getDeviceId } from '../utils/deviceIdentity';
 
 const PUSH_TOKEN_KEY = 'qot.expoPushToken';
 
@@ -57,7 +58,7 @@ export const registerForPushNotifications = async () => {
         body: {
             expo_push_token: expoPushToken,
             platform: Platform.OS,
-            device_id: Device.modelId || Device.modelName || '',
+            device_id: await getDeviceId(),
         },
     });
     await AsyncStorage.setItem(PUSH_TOKEN_KEY, expoPushToken);

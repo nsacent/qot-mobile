@@ -14,7 +14,6 @@ import { Checkbox } from 'react-native-paper';
 import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
-import FacebookSignInButton from '../../components/FacebookSignInButton';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
 import UgandanPhoneInput from '../../components/UgandanPhoneInput';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
@@ -222,9 +221,8 @@ const SignUp = ({ navigation }) => {
                     </View>
 
                     <GoogleSignInButton navigation={navigation} mode="sign-up" />
-                    <FacebookSignInButton navigation={navigation} mode="sign-up" />
                     <Text style={[FONTS.fontXs, { color: colors.text, textAlign: 'center', lineHeight: 17, marginTop: 10 }] }>
-                        By continuing with Google or Facebook, you agree to QOT's Terms and Privacy Policy.
+                        By continuing with Google, you agree to QOT's Terms and Privacy Policy.
                     </Text>
 
                     <View style={{ flexDirection: 'row', marginTop: 18, marginBottom: 24, justifyContent: 'center' }}>
@@ -235,6 +233,9 @@ const SignUp = ({ navigation }) => {
                             <Text style={{ ...FONTS.font, color: COLORS.primary }}>Sign in</Text>
                         </TouchableOpacity>
                     </View>
+                    <TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'DrawerNavigation' }] })} style={{ minHeight: 44, marginTop: -18, marginBottom: 20, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary }]}>Browse QOT without signing in</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
             </KeyboardAvoidingView>

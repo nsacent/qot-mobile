@@ -42,6 +42,9 @@ const Editprofile = ({ navigation }) => {
     const { user, updateCurrentUser } = useAuth();
     const [fullName, setFullName] = useState(user?.full_name || '');
     const [phone, setPhone] = useState(localPhone(user?.phone));
+    const [alternativePhone, setAlternativePhone] = useState(
+        localPhone(user?.profile?.alternative_phone),
+    );
     const [businessName, setBusinessName] = useState(user?.profile?.business_name || '');
     const [bio, setBio] = useState(user?.profile?.bio || '');
     const [selectedCity, setSelectedCity] = useState(
@@ -176,6 +179,15 @@ const Editprofile = ({ navigation }) => {
             setError('Enter a valid Uganda mobile number after +256.');
             return;
         }
+        const cleanAlternativePhone = alternativePhone.replace(/\D/g, '');
+        if (cleanAlternativePhone && !/^7\d{8}$/.test(cleanAlternativePhone)) {
+            setError('Enter a valid alternative Uganda mobile number after +256.');
+            return;
+        }
+        if (cleanAlternativePhone && cleanAlternativePhone === cleanPhone) {
+            setError('Use a different number from your primary verified phone.');
+            return;
+        }
 
         setSaving(true);
         setError('');
@@ -183,6 +195,10 @@ const Editprofile = ({ navigation }) => {
             const formData = new FormData();
             formData.append('full_name', cleanName);
             formData.append('phone', `+256${cleanPhone}`);
+            formData.append(
+                'alternative_phone',
+                cleanAlternativePhone ? `+256${cleanAlternativePhone}` : '',
+            );
             formData.append('business_name', businessName.trim());
             formData.append('bio', bio.trim());
             formData.append('timezone', timezone);
@@ -285,6 +301,22 @@ const Editprofile = ({ navigation }) => {
                                 style={[FONTS.font, { color: colors.title, flex: 1, paddingHorizontal: 12 }]}
                             />
                         </View>
+
+                        <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginBottom: 7 }]}>Alternative phone <Text style={{ color: colors.text, fontFamily: 'PoppinsRegular' }}>(optional)</Text></Text>
+                        <View style={[inputStyle, { marginBottom: 5, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 0, overflow: 'hidden' }]}>
+                            <View style={{ alignSelf: 'stretch', justifyContent: 'center', paddingHorizontal: 13, borderRightWidth: 1, borderRightColor: colors.border, backgroundColor: colors.background }}>
+                                <Text style={[FONTS.font, FONTS.fontTitle, { color: colors.title }]}>+256</Text>
+                            </View>
+                            <TextInput
+                                value={alternativePhone}
+                                onChangeText={(value) => setAlternativePhone(value.replace(/\D/g, '').slice(0, 9))}
+                                keyboardType="phone-pad"
+                                placeholder="7XXXXXXXX"
+                                placeholderTextColor={colors.textLight}
+                                style={[FONTS.font, { color: colors.title, flex: 1, paddingHorizontal: 12 }]}
+                            />
+                        </View>
+                        <Text style={[FONTS.fontXs, { color: colors.text, lineHeight: 17, marginBottom: 16 }]}>Shown as another contact option for buyers. It does not need verification and cannot be used to sign in.</Text>
 
                         <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginBottom: 7 }]}>Business name <Text style={{ color: colors.text, fontFamily: 'PoppinsRegular' }}>(optional)</Text></Text>
                         <TextInput value={businessName} onChangeText={setBusinessName} placeholder="Your shop or business" placeholderTextColor={colors.textLight} style={[inputStyle, { marginBottom: 16 }]} />

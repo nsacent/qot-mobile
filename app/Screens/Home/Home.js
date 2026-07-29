@@ -192,7 +192,7 @@ const HomeScreen = ({ navigation }) => {
                     </View>
                     <TouchableOpacity
                         style={{ height: 46, width: 42, alignItems: 'center', justifyContent: 'center', marginLeft: 2 }}
-                        onPress={() => navigation.navigate('NotificationsCenter')}
+                        onPress={() => isAuthenticated ? navigation.navigate('NotificationsCenter') : navigation.navigate('SignIn')}
                         accessibilityLabel="Open notifications"
                     >
                         <FeatherIcon name="bell" size={21} color={colors.title} />

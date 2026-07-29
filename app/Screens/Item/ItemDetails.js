@@ -151,8 +151,23 @@ const ItemDetails = ({ route, navigation }) => {
             return;
         }
         if (!listing?.seller_phone) return;
-        const target = `${scheme}:${listing.seller_phone}`;
-        if (await Linking.canOpenURL(target)) await Linking.openURL(target);
+        const openNumber = async (number) => {
+            const target = `${scheme}:${number}`;
+            if (await Linking.canOpenURL(target)) await Linking.openURL(target);
+        };
+        if (scheme === 'tel' && listing.seller_alternative_phone) {
+            Alert.alert(
+                'Choose a seller number',
+                'The alternative number is supplied by the seller and is not verified by QOT.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: `Primary ${listing.seller_phone}`, onPress: () => openNumber(listing.seller_phone) },
+                    { text: `Alternative ${listing.seller_alternative_phone}`, onPress: () => openNumber(listing.seller_alternative_phone) },
+                ],
+            );
+            return;
+        }
+        await openNumber(listing.seller_phone);
     };
 
     const contactSeller = async (initialMessage, offer = null) => {

@@ -3,6 +3,8 @@ import {
     getSession,
     updateTokens,
 } from './session';
+import { getDeviceId } from '../utils/deviceIdentity';
+import { Platform } from 'react-native';
 
 export const API_BASE_URL = (
     process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.qot.ug/api/v1'
@@ -53,11 +55,13 @@ const refreshAccessToken = async () => {
 
     if (!refreshPromise) {
         refreshPromise = (async () => {
+            const deviceId = await getDeviceId().catch(() => '');
             const response = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-QOT-Platform': 'android',
+                    'X-QOT-Platform': Platform.OS,
+                    ...(deviceId ? { 'X-QOT-Device-ID': deviceId } : {}),
                 },
                 body: JSON.stringify({ refresh }),
             });
@@ -91,10 +95,12 @@ export const apiRequest = async (path, options = {}) => {
     } = options;
 
     const session = getSession();
+    const deviceId = await getDeviceId().catch(() => '');
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     const requestHeaders = {
         Accept: 'application/json',
-        'X-QOT-Platform': 'android',
+        'X-QOT-Platform': Platform.OS,
+        ...(deviceId ? { 'X-QOT-Device-ID': deviceId } : {}),
         ...(!isFormData && body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...headers,
     };

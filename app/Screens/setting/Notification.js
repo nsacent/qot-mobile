@@ -23,15 +23,19 @@ const DEFAULTS = {
     messages: true,
     listing_approvals: true,
     listing_rejections: true,
+    favorites: true,
+    followers: true,
     reports: true,
     renewals: true,
     marketing: false,
 };
 
 const OPTIONS = [
-    ['messages', 'Messages', 'New buyer and seller messages'],
+    ['messages', 'Messages & offers', 'New chats, price offers and offer decisions'],
     ['listing_approvals', 'Ad approvals', 'When QOT approves one of your ads'],
     ['listing_rejections', 'Ad rejections', 'When an ad needs your attention'],
+    ['favorites', 'Saved ad alerts', 'When someone saves one of your ads'],
+    ['followers', 'New followers', 'When someone starts following your profile'],
     ['verification', 'Verification', 'Important account verification updates'],
     ['renewals', 'Ad renewals', 'Reminders before your ads expire'],
     ['reports', 'Reports and safety', 'Updates about reports you submit'],
@@ -152,7 +156,7 @@ const Notification = () => {
 
     return (
         <SafeAreaView style={{ backgroundColor: colors.background, flex: 1 }}>
-            <Header title="Notifications" leftIcon="back" titleLeft />
+            <Header title="Notification preferences" leftIcon="back" titleLeft />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
                 <View style={GlobalStyleSheet.container}>
                     <Text style={[FONTS.fontSm, { color: colors.text, marginTop: 8, marginBottom: 15, lineHeight: 20 }]}>Choose which QOT updates you want to receive. Essential security messages may still be sent.</Text>

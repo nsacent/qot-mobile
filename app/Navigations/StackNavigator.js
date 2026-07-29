@@ -32,7 +32,6 @@ import TabStyle4 from "../components/Footers/FooterStyle4";
 import ListScreen from "../Screens/Components/Lists";
 import Pricings from "../Screens/Components/Pricings";
 import Snackbars from "../Screens/Components/Snakbars";
-import Socials from "../Screens/Components/Socials";
 import SwipeableScreen from "../Screens/Components/Swipeable";
 import Tabs from "../Screens/Components/Tabs";
 import Tables from "../Screens/Components/Tables";
@@ -81,7 +80,7 @@ const StackComponent = createStackNavigator();
 const StackNavigator = () => {
 
   const theme = useTheme();
-  const { isAuthenticated, isBootstrapping } = useAuth();
+  const { isBootstrapping } = useAuth();
 
   if (isBootstrapping) {
     return (
@@ -94,7 +93,7 @@ const StackNavigator = () => {
   return (
     <View style={{width:'100%', flex: 1 }}>
       <StackComponent.Navigator
-        initialRouteName={isAuthenticated ? "DrawerNavigation" : "SignIn"}
+        initialRouteName="DrawerNavigation"
         detachInactiveScreens={true}
         screenOptions={{
           headerShown: false,
@@ -129,7 +128,6 @@ const StackNavigator = () => {
         <StackComponent.Screen name={"lists"} component={ListScreen} />
         <StackComponent.Screen name={"Pricings"} component={Pricings} />
         <StackComponent.Screen name={"Snackbars"} component={Snackbars} />
-        <StackComponent.Screen name={"Socials"} component={Socials} />
         <StackComponent.Screen name={"Swipeable"} component={SwipeableScreen} />
         <StackComponent.Screen name={"Tabs"} component={Tabs} />
         <StackComponent.Screen name={"Tables"} component={Tables} />

@@ -1,7 +1,8 @@
 import { apiRequest } from './client';
 import { ugandanPhoneE164 } from '../utils/phoneNumbers';
+import { getDeviceMetadata } from '../utils/deviceIdentity';
 
-export const login = ({ identifier, password }) => (
+export const login = async ({ identifier, password }) => (
     apiRequest('/auth/login/', {
         method: 'POST',
         body: {
@@ -10,6 +11,7 @@ export const login = ({ identifier, password }) => (
                 : ugandanPhoneE164(identifier),
             password,
             keep_signed_in: true,
+            device: await getDeviceMetadata(),
         },
     })
 );
@@ -21,17 +23,18 @@ export const requestPhoneOTP = (phone) => (
     })
 );
 
-export const confirmPhoneOTP = ({ phone, code }) => (
+export const confirmPhoneOTP = async ({ phone, code }) => (
     apiRequest('/auth/otp/confirm/', {
         method: 'POST',
         body: {
             phone: ugandanPhoneE164(phone),
             code: String(code || '').replace(/\D/g, '').slice(0, 6),
+            device: await getDeviceMetadata(),
         },
     })
 );
 
-export const register = ({ phone, email, fullName, password, passwordConfirm }) => (
+export const register = async ({ phone, email, fullName, password, passwordConfirm }) => (
     apiRequest('/auth/register/', {
         method: 'POST',
         body: {
@@ -40,26 +43,18 @@ export const register = ({ phone, email, fullName, password, passwordConfirm }) 
             full_name: fullName.trim(),
             password,
             password_confirm: passwordConfirm,
+            device: await getDeviceMetadata(),
         },
     })
 );
 
-export const loginWithFacebook = ({ accessToken }) => (
-    apiRequest('/auth/facebook/', {
-        method: 'POST',
-        body: {
-            access_token: accessToken,
-            keep_signed_in: true,
-        },
-    })
-);
-
-export const loginWithGoogle = ({ credential }) => (
+export const loginWithGoogle = async ({ credential }) => (
     apiRequest('/auth/google/', {
         method: 'POST',
         body: {
             credential,
             keep_signed_in: true,
+            device: await getDeviceMetadata(),
         },
     })
 );

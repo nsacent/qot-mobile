@@ -164,6 +164,14 @@ const Profile = ({ navigation }) => {
             onPress: () => navigation.navigate('NotificationsCenter'),
         },
         {
+            icon: 'sliders',
+            label: 'Notification preferences',
+            detail: 'Choose message, offer, ad and account alerts',
+            color: '#C2410C',
+            background: '#FFF7ED',
+            onPress: () => navigation.navigate('Notification'),
+        },
+        {
             icon: 'star',
             label: 'My reviews',
             detail: 'See reviews you have submitted for sellers',

@@ -163,6 +163,7 @@ const Sell = ({ navigation, route }) => {
     const [clearDraftLoading, setClearDraftLoading] = useState(false);
     const [locating, setLocating] = useState(false);
     const [locationMessage, setLocationMessage] = useState(null);
+    const [currentLocationSelected, setCurrentLocationSelected] = useState(false);
     const [draggingImageKey, setDraggingImageKey] = useState(null);
 
     useEffect(() => {
@@ -375,6 +376,7 @@ const Sell = ({ navigation, route }) => {
             : '';
 
     const chooseLocation = (location) => {
+        setCurrentLocationSelected(false);
         if (location.selection_type === 'area') {
             const city = findCity(regions, location.city_id);
             setSelectedCity(city || { id: location.city_id, name: location.city_name, region_name: location.region_name });
@@ -593,10 +595,14 @@ const Sell = ({ navigation, route }) => {
         setLocating(true);
         setError('');
         setLocationMessage(null);
+        setCurrentLocationSelected(false);
+        setSelectedCity(null);
+        setSelectedArea(null);
         try {
             const { city, area } = await requestCurrentMarketplaceLocation(allCities);
             setSelectedCity(city);
             setSelectedArea(area || null);
+            setCurrentLocationSelected(true);
             const label = area ? `${area.name}, ${city.name}` : city.name;
             setDraftStatus(`Current location set to ${label}.`);
             setLocationMessage({ type: 'success', text: `Location set to ${label}.` });
@@ -754,6 +760,7 @@ const Sell = ({ navigation, route }) => {
             setSelectedCategory(null);
             setSelectedCity(findCity(regions, user?.profile?.default_city) || null);
             setSelectedArea(findArea(regions, user?.profile?.default_area) || null);
+            setCurrentLocationSelected(false);
             setCategoryFilters([]);
             setFilterValues({});
             setTitle('');
@@ -921,7 +928,12 @@ const Sell = ({ navigation, route }) => {
             <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginBottom: 7 }]}>Location *</Text>
             <TouchableOpacity onPress={() => setLocationModal(true)} style={[inputStyle, { marginBottom: 16, flexDirection: 'row', alignItems: 'center' }]}>
                 <FeatherIcon name="map-pin" size={18} color={COLORS.primary} />
-                <Text style={[FONTS.font, { color: selectedCity ? colors.title : colors.textLight, flex: 1, marginLeft: 9 }]}>{selectedLocationLabel || 'Choose an area, city or district'}</Text>
+                <Text style={[FONTS.font, { color: selectedCity ? colors.title : colors.textLight, flex: 1, marginLeft: 9 }]}>{locating ? 'Finding your current area…' : selectedLocationLabel || 'Choose an area, city or district'}</Text>
+                {currentLocationSelected ? (
+                    <View style={{ borderRadius: 8, backgroundColor: '#EAF8EF', paddingHorizontal: 7, paddingVertical: 4, marginRight: 7 }}>
+                        <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: '#16803C', fontSize: 8 }]}>CURRENT</Text>
+                    </View>
+                ) : null}
                 <FeatherIcon name="chevron-right" size={19} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity disabled={locating} onPress={useCurrentLocation} style={{ minHeight: 45, borderRadius: 11, backgroundColor: `${COLORS.primary}0D`, borderWidth: 1, borderColor: `${COLORS.primary}35`, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, marginTop: -7, marginBottom: 16 }}>

@@ -75,16 +75,6 @@ export const AuthProvider = ({ children }) => {
         return result.user;
     }, []);
 
-    const signInWithFacebook = useCallback(async (accessToken) => {
-        const result = await authApi.loginWithFacebook({
-            accessToken,
-        });
-        clearSessionCache();
-        await saveSession({ user: result.user, tokens: result.tokens });
-        setUser(result.user);
-        return result.user;
-    }, []);
-
     const signInWithGoogle = useCallback(async (credential) => {
         const result = await authApi.loginWithGoogle({
             credential,
@@ -143,7 +133,6 @@ export const AuthProvider = ({ children }) => {
         requestPhoneOTP,
         signInWithPhoneOTP,
         signUp,
-        signInWithFacebook,
         signInWithGoogle,
         signOut,
         freezeAccount,
@@ -156,7 +145,6 @@ export const AuthProvider = ({ children }) => {
         requestPhoneOTP,
         signInWithPhoneOTP,
         signUp,
-        signInWithFacebook,
         signInWithGoogle,
         signOut,
         freezeAccount,

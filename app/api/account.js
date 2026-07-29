@@ -7,6 +7,8 @@ import {
     cacheKey,
     sessionScope,
 } from '../cache/queryCache';
+import { getSession, updateTokens } from './session';
+import { getDeviceMetadata } from '../utils/deviceIdentity';
 
 const collection = (data) => Array.isArray(data) ? data : (data?.results || []);
 
@@ -44,6 +46,39 @@ export const updateProfile = async (body) => {
     queryClient.invalidateQueries({ queryKey: cacheKey('account') });
     return result;
 };
+
+export const ensureCurrentDeviceTracked = async () => {
+    const refresh = getSession()?.tokens?.refresh;
+    if (!refresh) return null;
+    const result = await apiRequest('/auth/sessions/register-current/', {
+        method: 'POST',
+        authenticated: true,
+        body: {
+            refresh,
+            device: await getDeviceMetadata(),
+        },
+    });
+    if (result?.tokens) await updateTokens(result.tokens);
+    return result;
+};
+
+export const getSignedInDevices = () => (
+    apiRequest('/auth/sessions/', { authenticated: true })
+);
+
+export const signOutDevice = (sessionId) => (
+    apiRequest(`/auth/sessions/${sessionId}/`, {
+        method: 'DELETE',
+        authenticated: true,
+    })
+);
+
+export const signOutOtherDevices = () => (
+    apiRequest('/auth/sessions/sign-out-others/', {
+        method: 'POST',
+        authenticated: true,
+    })
+);
 
 export const getFollowers = (userId, { force = false } = {}) => cachedQuery({
     key: ['account', 'followers', sessionScope(), userId],

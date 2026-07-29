@@ -10,6 +10,7 @@ import Profile from '../Screens/profile/Profile';
 import Saved from '../Screens/saved/Saved';
 import { getChatThreads } from '../api/chats';
 import { COLORS, FONTS } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,9 +20,15 @@ const BottomNavigation = () => {
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
     const [unreadMessages, setUnreadMessages] = useState(0);
+    const { isAuthenticated } = useAuth();
 
     useEffect(() => {
         let active = true;
+
+        if (!isAuthenticated) {
+            setUnreadMessages(0);
+            return () => { active = false; };
+        }
 
         const refreshUnread = () => {
             getChatThreads({ folder: 'unread' })
@@ -38,7 +45,15 @@ const BottomNavigation = () => {
             active = false;
             clearInterval(timer);
         };
-    }, []);
+    }, [isAuthenticated]);
+
+    const protectedTabListeners = ({ navigation }) => ({
+        tabPress: (event) => {
+            if (isAuthenticated) return;
+            event.preventDefault();
+            navigation.getParent()?.getParent()?.navigate('SignIn');
+        },
+    });
 
     return (
         <Tab.Navigator
@@ -99,6 +114,7 @@ const BottomNavigation = () => {
                         color: COLORS.white,
                     },
                 }}
+                listeners={protectedTabListeners}
             />
             <Tab.Screen
                 name="CreateAd2"
@@ -106,6 +122,10 @@ const BottomNavigation = () => {
                 listeners={({ navigation }) => ({
                     tabPress: (event) => {
                         event.preventDefault();
+                        if (!isAuthenticated) {
+                            navigation.getParent()?.getParent()?.navigate('SignIn');
+                            return;
+                        }
                         navigation.navigate('Sell');
                     },
                 })}
@@ -137,8 +157,8 @@ const BottomNavigation = () => {
                     ),
                 }}
             />
-            <Tab.Screen name="Saved" component={Saved} />
-            <Tab.Screen name="Profile" component={Profile} />
+            <Tab.Screen name="Saved" component={Saved} listeners={protectedTabListeners} />
+            <Tab.Screen name="Profile" component={Profile} listeners={protectedTabListeners} />
         </Tab.Navigator>
     );
 };

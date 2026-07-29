@@ -17,7 +17,6 @@ const badge = require('../../assets/images/icons/badge.png');
 const input = require('../../assets/images/icons/input.png');
 const list = require('../../assets/images/icons/list.png');
 const pricing = require('../../assets/images/icons/pricing.png');
-const share = require('../../assets/images/icons/share.png');
 const tabs = require('../../assets/images/icons/tabs.png');
 const table = require('../../assets/images/icons/table.png');
 const toggle = require('../../assets/images/icons/toggle.png');
@@ -91,11 +90,6 @@ const Components = (props) => {
             icon : accordionIco,
             title : "Snackbars",
             navigate : 'Snackbars',
-        },
-        {
-            icon : share,
-            title : "Social",
-            navigate : 'Socials',
         },
         {
             icon : accordionIco,

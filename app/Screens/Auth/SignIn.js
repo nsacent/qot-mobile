@@ -13,7 +13,6 @@ import {
 import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
-import FacebookSignInButton from '../../components/FacebookSignInButton';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
 import UgandanPhoneInput from '../../components/UgandanPhoneInput';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
@@ -233,7 +232,6 @@ const SignIn = ({ navigation }) => {
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 18 }}><View style={{ flex: 1, height: 1, backgroundColor: colors.border }} /><Text style={[FONTS.fontSm, { color: colors.text, marginHorizontal: 12 }]}>or continue with</Text><View style={{ flex: 1, height: 1, backgroundColor: colors.border }} /></View>
                     <GoogleSignInButton navigation={navigation} />
-                    <FacebookSignInButton navigation={navigation} />
 
                     <View style={{ backgroundColor: colors.card, borderRadius: 11, padding: 11, flexDirection: 'row', alignItems: 'center', marginTop: 15 }}>
                         <FeatherIcon name="shield" size={16} color={COLORS.primary} />
@@ -243,6 +241,9 @@ const SignIn = ({ navigation }) => {
                     <View style={{ marginTop: 20, marginBottom: 25 }}>
                         <Text style={{ ...FONTS.font, color: colors.title, textAlign: 'center', marginBottom: 11 }}>New to QOT?</Text>
                         <CustomButton onPress={() => navigation.navigate('SignUp')} outline color={COLORS.secondary} title="Create an account" />
+                        <TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'DrawerNavigation' }] })} style={{ minHeight: 44, marginTop: 10, alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary }]}>Browse QOT without signing in</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </ScrollView>

@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Image as ExpoImage } from 'expo-image';
 import Constants from 'expo-constants';
 import { clearQueryCache } from '../../cache/queryCache';
+import SignedInDevices from '../../components/SignedInDevices';
 
 const QuickTile = ({ icon, title, detail, color, background, onPress }) => {
     const { colors } = useTheme();
@@ -178,7 +179,7 @@ const Setting = ({ navigation }) => {
                     <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, textTransform: 'uppercase', letterSpacing: 0.65, marginTop: 23, marginBottom: 9 }]}>Quick settings</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 11 }}>
                         <QuickTile icon="user" title="Profile" detail="Photo, bio and contact details" color="#2457C5" background="#E9F2FF" onPress={() => navigation.navigate('Editprofile')} />
-                        <QuickTile icon="bell" title="Notifications" detail="Choose the updates you receive" color="#EA580C" background="#FFF7ED" onPress={() => navigation.navigate('Notification')} />
+                        <QuickTile icon="bell" title="Alerts" detail="Notification preferences and phone alerts" color="#EA580C" background="#FFF7ED" onPress={() => navigation.navigate('Notification')} />
                         <QuickTile icon="lock" title="Password" detail="Update your account password" color="#9A5B00" background="#FFF3DC" onPress={() => navigation.navigate('Changepassword')} />
                         <QuickTile icon="shield" title="Privacy" detail="Security, privacy and legal pages" color="#176B44" background="#E9F8EF" onPress={() => navigation.navigate('Privacy')} />
                     </View>
@@ -206,15 +207,24 @@ const Setting = ({ navigation }) => {
                         <SettingRow icon="clock" title="Timezone" detail={timezone.replaceAll('_', ' ')} onPress={() => navigation.navigate('Editprofile')} />
                     </View>
 
+                    <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, textTransform: 'uppercase', letterSpacing: 0.65, marginTop: 23, marginBottom: 9 }]}>Alerts & notifications</Text>
+                    <View style={{ borderRadius: 16, borderWidth: 1, borderColor: colors.borderColor, overflow: 'hidden' }}>
+                        <SettingRow first icon="sliders" title="Notification preferences" detail="Choose messages, ad, offer and account alerts" onPress={() => navigation.navigate('Notification')} />
+                        <SettingRow icon="bell" title="Notification inbox" detail="View your ad, account and message updates" onPress={() => navigation.navigate('NotificationsCenter')} />
+                    </View>
+
                     <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, textTransform: 'uppercase', letterSpacing: 0.65, marginTop: 23, marginBottom: 9 }]}>Your QOT activity</Text>
                     <View style={{ borderRadius: 16, borderWidth: 1, borderColor: colors.borderColor, overflow: 'hidden' }}>
-                        <SettingRow first icon="bell" title="Notification inbox" detail="Ad, account and message updates" onPress={() => navigation.navigate('NotificationsCenter')} />
-                        <SettingRow icon="activity" title="Activity" detail="Alerts, ads, saves and reviews" onPress={() => navigation.navigate('AccountActivity')} />
+                        <SettingRow first icon="activity" title="Activity" detail="Alerts, ads, saves and reviews" onPress={() => navigation.navigate('AccountActivity')} />
                         <SettingRow icon="star" title="My reviews" detail="Reviews you submitted for sellers" onPress={() => navigation.navigate('MyReviews')} />
                         <SettingRow icon="tag" title="My ads" detail="Manage and review your adverts" onPress={() => navigation.navigate('MyAds')} />
                         <SettingRow icon="heart" title="Saved" detail="Saved ads and saved searches" onPress={() => openBottomTab('Saved')} />
                         <SettingRow icon="clock" title="Recently viewed" detail="Return to ads you opened" onPress={() => navigation.navigate('RecentlyViewed')} />
                     </View>
+
+                    <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, textTransform: 'uppercase', letterSpacing: 0.65, marginTop: 23, marginBottom: 9 }]}>Signed-in devices</Text>
+                    <Text style={[FONTS.fontXs, { color: colors.text, lineHeight: 18, marginTop: -3, marginBottom: 9 }]}>Review phones and browsers using your QOT account, and sign out any you do not recognise.</Text>
+                    <SignedInDevices />
 
                     <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.text, textTransform: 'uppercase', letterSpacing: 0.65, marginTop: 23, marginBottom: 9 }]}>Storage & data</Text>
                     <View style={{ borderRadius: 16, borderWidth: 1, borderColor: colors.borderColor, overflow: 'hidden' }}>

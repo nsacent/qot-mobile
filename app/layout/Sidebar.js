@@ -10,23 +10,26 @@ const Sidebar = ({ navigation }) => {
 
     const theme = useTheme();
     const { colors } = theme;
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
 
     const navItem = [
         {
             icon: "bar-chart-2",
             name: "Dashboard",
             navigate: "SellerDashboard",
+            protected: true,
         },
         {
             icon: "trending-up",
             name: "Ad Analytics",
             navigate: "SellerAnalytics",
+            protected: true,
         },
         {
             icon: "refresh-cw",
             name: "Renewals",
             navigate: "SellerRenewals",
+            protected: true,
         },
         {
             icon: "clock",
@@ -37,16 +40,19 @@ const Sidebar = ({ navigation }) => {
             icon: "activity",
             name: "Activity",
             navigate: "AccountActivity",
+            protected: true,
         },
         {
             icon: "bell",
             name: "Notifications",
             navigate: "NotificationsCenter",
+            protected: true,
         },
         {
             icon: "star",
             name: "My Reviews",
             navigate: "MyReviews",
+            protected: true,
         },
         {
             icon: "grid",
@@ -67,11 +73,13 @@ const Sidebar = ({ navigation }) => {
             icon: "tag",
             name: "My Ads",
             navigate: 'MyAds',
+            protected: true,
         },
         {
             icon: "user",
             name: "Profile",
             navigate: "Profile",
+            protected: true,
         },
     ]
 
@@ -105,9 +113,10 @@ const Sidebar = ({ navigation }) => {
                                             borderRadius: 65,
                                             marginBottom: 10,
                                         }}
-                                        source={user?.profile?.avatar ? { uri: user.profile.avatar } : IMAGES.Small5}
+                                        source={isAuthenticated && user?.profile?.avatar ? { uri: user.profile.avatar } : isAuthenticated ? IMAGES.Small5 : IMAGES.qotLogo}
+                                        resizeMode={isAuthenticated ? 'cover' : 'contain'}
                                     />
-                                    <TouchableOpacity
+                                    {isAuthenticated && <TouchableOpacity
                                         onPress={() => navigation.navigate('DrawerNavigation', {
                                             screen: 'BottomNavigation',
                                             params: { screen: 'Profile' },
@@ -127,19 +136,29 @@ const Sidebar = ({ navigation }) => {
                                         }}
                                     >
                                         <FeatherIcon color={COLORS.white} name='edit' />
-                                    </TouchableOpacity>
+                                    </TouchableOpacity>}
                                 </View>
                             </View>
                             <ThemeBtn />
                         </View>
                         <View>
-                            <Text style={{ ...FONTS.h5, color: colors.title, marginBottom: 4 }}>{user?.full_name || 'QOT user'}</Text>
-                            <Text style={{ ...FONTS.font, color: colors.textLight, opacity: .9, marginBottom: 2 }}>{user?.email || user?.phone || ''}</Text>
+                            <Text style={{ ...FONTS.h5, color: colors.title, marginBottom: 4 }}>{isAuthenticated ? user?.full_name || 'QOT user' : 'Welcome to QOT'}</Text>
+                            <Text style={{ ...FONTS.font, color: colors.textLight, opacity: .9, marginBottom: 2 }}>{isAuthenticated ? user?.email || user?.phone || '' : 'Browse and discover ads for free'}</Text>
+                            {!isAuthenticated && (
+                                <View style={{ flexDirection: 'row', marginTop: 12 }}>
+                                    <TouchableOpacity onPress={() => navigation.navigate('SignIn')} style={{ minHeight: 39, borderRadius: 10, backgroundColor: COLORS.primary, paddingHorizontal: 15, alignItems: 'center', justifyContent: 'center' }}>
+                                        <Text style={{ ...FONTS.fontSm, ...FONTS.fontTitle, color: COLORS.white }}>Sign in</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={{ minHeight: 39, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary, paddingHorizontal: 15, marginLeft: 8, alignItems: 'center', justifyContent: 'center' }}>
+                                        <Text style={{ ...FONTS.fontSm, ...FONTS.fontTitle, color: COLORS.primary }}>Create account</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
                         </View>
                     </View>
 
                     <View style={{ flex: 1 }}>
-                        {navItem.map((data, index) => {
+                        {navItem.filter((data) => !data.protected || isAuthenticated).map((data, index) => {
                             return (
                                 <TouchableOpacity
                                     onPress={() => {
