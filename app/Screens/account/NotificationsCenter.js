@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
+    Image,
     Linking,
     RefreshControl,
     SafeAreaView,
@@ -222,9 +223,17 @@ const NotificationsCenter = ({ navigation }) => {
                                     const tone = notificationTone(item.notification_type);
                                     return (
                                         <TouchableOpacity key={item.id} onPress={() => openNotification(item)} activeOpacity={0.82} style={{ minHeight: 96, padding: 13, backgroundColor: item.is_read ? colors.card : `${COLORS.primary}08`, borderTopWidth: index ? 1 : 0, borderTopColor: colors.border, flexDirection: 'row', alignItems: 'center' }}>
-                                            <View style={{ height: 43, width: 43, borderRadius: 14, backgroundColor: tone.background, alignItems: 'center', justifyContent: 'center' }}>
-                                                <FeatherIcon name={tone.icon} size={18} color={tone.color} />
-                                            </View>
+                                            {item.image_url ? (
+                                                <Image
+                                                    source={{ uri: item.image_url }}
+                                                    resizeMode="cover"
+                                                    style={{ height: 70, width: 70, borderRadius: 13, backgroundColor: tone.background }}
+                                                />
+                                            ) : (
+                                                <View style={{ height: 43, width: 43, borderRadius: 14, backgroundColor: tone.background, alignItems: 'center', justifyContent: 'center' }}>
+                                                    <FeatherIcon name={tone.icon} size={18} color={tone.color} />
+                                                </View>
+                                            )}
                                             <View style={{ flex: 1, minWidth: 0, marginLeft: 11 }}>
                                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                                     <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: tone.color, fontSize: 8, textTransform: 'uppercase' }]}>{titleCase(item.notification_type)}</Text>
