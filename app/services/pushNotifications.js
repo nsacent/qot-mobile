@@ -29,11 +29,28 @@ const setAndroidChannel = async () => {
     });
 };
 
+export const configurePushNotifications = async () => {
+    await setAndroidChannel();
+};
+
+const syncPushTokenWithQOT = async (expoPushToken) => {
+    await apiRequest('/notifications/devices/', {
+        method: 'POST',
+        authenticated: true,
+        body: {
+            expo_push_token: expoPushToken,
+            platform: Platform.OS,
+            device_id: await getDeviceId(),
+        },
+    });
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, expoPushToken);
+};
+
 export const registerForPushNotifications = async () => {
     if (Platform.OS === 'web') return { status: 'unsupported' };
     if (!Device.isDevice) return { status: 'physical_device_required' };
 
-    await setAndroidChannel();
+    await configurePushNotifications();
 
     if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
         return { status: 'development_build_required' };
@@ -52,16 +69,7 @@ export const registerForPushNotifications = async () => {
     if (!projectId) return { status: 'project_not_configured' };
 
     const expoPushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    await apiRequest('/notifications/devices/', {
-        method: 'POST',
-        authenticated: true,
-        body: {
-            expo_push_token: expoPushToken,
-            platform: Platform.OS,
-            device_id: await getDeviceId(),
-        },
-    });
-    await AsyncStorage.setItem(PUSH_TOKEN_KEY, expoPushToken);
+    await syncPushTokenWithQOT(expoPushToken);
     return { status: 'registered', token: expoPushToken };
 };
 

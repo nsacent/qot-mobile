@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import { Linking, StatusBar } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Linking, Platform, StatusBar } from "react-native";
 import * as Notifications from "expo-notifications";
+import * as NavigationBar from 'expo-navigation-bar';
+import * as SystemUI from 'expo-system-ui';
 import {
   NavigationContainer,
   DefaultTheme as NavigationDefaultTheme,
@@ -88,7 +90,44 @@ const Routes = () => {
     }
   }
   
-  const theme = isDarkTheme ? CustomDarkTheme : CustomDefaultTheme; 
+  const theme = isDarkTheme ? CustomDarkTheme : CustomDefaultTheme;
+
+  useEffect(() => {
+    const backgroundColor = theme.colors.background;
+    const contentStyle = isDarkTheme ? 'light-content' : 'dark-content';
+
+    StatusBar.setBarStyle(contentStyle, true);
+
+    if (Platform.OS !== 'android') return undefined;
+
+    let active = true;
+
+    const applyAndroidSystemBars = async () => {
+      try {
+        StatusBar.setTranslucent(false);
+        StatusBar.setBackgroundColor(backgroundColor, true);
+        await Promise.allSettled([
+          SystemUI.setBackgroundColorAsync(backgroundColor),
+          NavigationBar.setPositionAsync('relative'),
+        ]);
+        if (!active) return;
+        await Promise.allSettled([
+          NavigationBar.setBackgroundColorAsync(backgroundColor),
+          NavigationBar.setBorderColorAsync(backgroundColor),
+          NavigationBar.setButtonStyleAsync(isDarkTheme ? 'light' : 'dark'),
+          NavigationBar.setVisibilityAsync('visible'),
+        ]);
+      } catch {
+        // The declarative StatusBar and native app settings remain the fallback.
+      }
+    };
+
+    void applyAndroidSystemBars();
+
+    return () => {
+      active = false;
+    };
+  }, [isDarkTheme, theme.colors.background]);
 
   return (
     <themeContext.Provider value={authContext}>

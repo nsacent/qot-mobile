@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
 const LOCATION_KEY = 'qot.lastBuyerLocation';
 const CITY_COORDINATES_KEY = 'qot.cityCoordinates';
@@ -58,6 +59,61 @@ export const formatDistance = (distance) => {
     return `${Math.round(value).toLocaleString()} km away`;
 };
 
+const waitForAndroidPosition = (timeoutMs = 30000) => new Promise((resolve, reject) => {
+    let subscription = null;
+    let settled = false;
+    let lastError = null;
+
+    const finish = (location, error = null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        subscription?.remove();
+        if (location) resolve(location);
+        else reject(error || new Error('Android could not obtain a location fix.'));
+    };
+
+    const timeout = setTimeout(() => {
+        finish(null, lastError || new Error('Android took too long to find your location.'));
+    }, timeoutMs);
+
+    Location.watchPositionAsync(
+        {
+            accuracy: Location.Accuracy.Highest,
+            timeInterval: 1000,
+            distanceInterval: 0,
+            // Do not let Expo gate a GPS fix on Android's network provider.
+            mayShowUserSettingsDialog: false,
+        },
+        (location) => finish(location),
+        (message) => { lastError = new Error(message || 'Android location is temporarily unavailable.'); },
+    )
+        .then((value) => {
+            subscription = value;
+            if (settled) subscription.remove();
+        })
+        .catch((error) => finish(null, error));
+});
+
+const storedLocationAsResult = async (maxAgeMs) => {
+    try {
+        const raw = await AsyncStorage.getItem(LOCATION_KEY);
+        const location = raw ? JSON.parse(raw) : null;
+        const capturedAt = new Date(location?.captured_at).getTime();
+        if (!Number.isFinite(location?.latitude) || !Number.isFinite(location?.longitude)) return null;
+        if (!Number.isFinite(capturedAt) || Date.now() - capturedAt > maxAgeMs) return null;
+        return {
+            coords: {
+                latitude: location.latitude,
+                longitude: location.longitude,
+            },
+            timestamp: capturedAt,
+        };
+    } catch {
+        return null;
+    }
+};
+
 export const requestBuyerLocation = async () => {
     const servicesEnabled = await Location.hasServicesEnabledAsync();
     if (!servicesEnabled) throw new Error('Turn on location services to find nearby ads.');
@@ -67,9 +123,62 @@ export const requestBuyerLocation = async () => {
         throw new Error('Allow location access to sort ads near you. You can change this in phone settings.');
     }
 
-    const result = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-    });
+    if (Platform.OS === 'android' && permission.android?.accuracy === 'coarse') {
+        throw new Error('Turn on Precise location for QOT in phone settings, then try again.');
+    }
+
+    let result = await Location.getLastKnownPositionAsync({
+        maxAge: 2 * 60 * 1000,
+        requiredAccuracy: 2500,
+    }).catch(() => null);
+
+    if (!result && Platform.OS !== 'android') {
+        result = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+            mayShowUserSettingsDialog: true,
+        });
+    }
+
+    if (!result && Platform.OS === 'android') {
+        let providerError = null;
+
+        // Android's balanced request can return "location unavailable" even
+        // when GPS is on. Force a GPS-priority fix before trying cached data.
+        try {
+            result = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Highest,
+                mayShowUserSettingsDialog: false,
+            });
+        } catch (error) {
+            providerError = error;
+        }
+
+        if (!result) {
+            try {
+                result = await waitForAndroidPosition();
+            } catch (error) {
+                providerError = error;
+            }
+        }
+
+        if (!result) {
+            await Location.enableNetworkProviderAsync().catch(() => null);
+            result = await Location.getLastKnownPositionAsync({
+                maxAge: 10 * 60 * 1000,
+                requiredAccuracy: 5000,
+            }).catch(() => null);
+        }
+
+        if (!result) result = await storedLocationAsResult(15 * 60 * 1000);
+
+        if (!result) {
+            const detail = String(providerError?.message || '').trim();
+            throw new Error(detail
+                ? `Android could not get your current location (${detail}). Turn on Location and Precise location, then try again.`
+                : 'Android could not get your current location. Turn on Location and Precise location, then try again.');
+        }
+    }
+
     const location = {
         latitude: result.coords.latitude,
         longitude: result.coords.longitude,
@@ -112,38 +221,119 @@ const bestNameMatch = (items, candidates) => {
     return bestMatch?.item || null;
 };
 
+const reverseGeocodeMarketplacePosition = async (position) => {
+    let nativeError = null;
+    const useNativeGeocoder = async () => {
+        try {
+            const nativeAddresses = await Location.reverseGeocodeAsync({
+                latitude: position.latitude,
+                longitude: position.longitude,
+            });
+            return nativeAddresses[0] || null;
+        } catch (error) {
+            nativeError = error;
+            return null;
+        }
+    };
+
+    // Apple provides reliable structured locality fields. Several Android
+    // geocoders return incomplete or stale address objects, so Android uses
+    // the coordinate-based network lookup first and keeps native as fallback.
+    if (Platform.OS !== 'android') {
+        const nativeAddress = await useNativeGeocoder();
+        if (nativeAddress) return nativeAddress;
+    }
+
+    try {
+        const params = [
+            `latitude=${encodeURIComponent(position.latitude)}`,
+            `longitude=${encodeURIComponent(position.longitude)}`,
+            'localityLanguage=en',
+        ].join('&');
+        const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?${params}`);
+        if (!response.ok) throw new Error('Network reverse geocoding failed.');
+        const result = await response.json();
+        const administrative = Array.isArray(result?.localityInfo?.administrative)
+            ? result.localityInfo.administrative
+            : [];
+        const district = administrative.find((item) => /district/i.test(String(item?.description || '')));
+        const deepest = [...administrative]
+            .filter((item) => Number(item?.adminLevel) >= 6)
+            .sort((first, second) => Number(second.adminLevel) - Number(first.adminLevel))[0];
+        const administrativeNames = administrative.map((item) => item?.name).filter(Boolean);
+
+        return {
+            isoCountryCode: result.countryCode,
+            city: result.locality || result.city || district?.name,
+            district: deepest?.name || result.locality,
+            subregion: district?.name || result.city,
+            region: result.principalSubdivision,
+            name: result.locality,
+            formattedAddress: administrativeNames.join(', '),
+        };
+    } catch {
+        if (Platform.OS === 'android') {
+            const nativeAddress = await useNativeGeocoder();
+            if (nativeAddress) return nativeAddress;
+        }
+        throw nativeError || new Error('We found your GPS position but could not identify the area. Choose it manually instead.');
+    }
+};
+
 export const requestCurrentMarketplaceLocation = async (cities = []) => {
     const position = await requestBuyerLocation();
-    const addresses = await Location.reverseGeocodeAsync({
-        latitude: position.latitude,
-        longitude: position.longitude,
-    });
-    const address = addresses[0] || {};
+    const address = await reverseGeocodeMarketplacePosition(position);
 
     if (address.isoCountryCode && String(address.isoCountryCode).toUpperCase() !== 'UG') {
         throw new Error('Your current location is outside Uganda. Choose a Ugandan city instead.');
     }
 
+    const formattedCandidates = String(address.formattedAddress || '')
+        .split(',')
+        .map(normaliseCity)
+        .filter(Boolean);
     const cityCandidates = [
         address.city,
-        address.district,
         address.subregion,
-        address.region,
+        address.district,
         address.name,
-    ].map(normaliseCity).filter(Boolean);
+        address.region,
+    ].map(normaliseCity).filter(Boolean).concat(formattedCandidates);
     const areaCandidates = [
         address.district,
         address.subregion,
         address.city,
         address.name,
         address.street,
-        address.formattedAddress,
-    ].map(normaliseCity).filter(Boolean);
-    const areas = cities.flatMap((city) => (
-        (city.areas || []).map((area) => ({ ...area, city }))
-    ));
-    const matchedArea = bestNameMatch(areas, areaCandidates);
-    const matchedCity = matchedArea?.city || bestNameMatch(cities, cityCandidates);
+    ].map(normaliseCity).filter(Boolean).concat(formattedCandidates);
+    // Resolve the district/city first, then search only its areas. Area names
+    // such as "Central Division" exist under many Ugandan districts; searching
+    // every area first can pair the current area with an unrelated district.
+    let matchedCity = bestNameMatch(cities, cityCandidates);
+    const matchedCityName = normaliseCity(matchedCity?.name || matchedCity?.title || matchedCity?.label);
+    const scopedAreaCandidates = areaCandidates.filter((candidate) => candidate !== matchedCityName);
+    let matchedArea = matchedCity
+        ? bestNameMatch(
+            (matchedCity.areas || []).map((area) => ({ ...area, city: matchedCity })),
+            scopedAreaCandidates,
+        )
+        : null;
+
+    // If the reverse geocoder omitted the district, an exact area name may
+    // still safely identify it, but only when that name belongs to one district.
+    if (!matchedCity) {
+        const exactAreaCandidates = new Set(areaCandidates);
+        const exactAreaMatches = cities.flatMap((city) => (
+            (city.areas || [])
+                .filter((area) => exactAreaCandidates.has(normaliseCity(area?.name || area?.title || area?.label)))
+                .map((area) => ({ ...area, city }))
+        ));
+        const matchingCityIds = new Set(exactAreaMatches.map((area) => String(area.city?.id || '')));
+        if (matchingCityIds.size === 1) {
+            matchedArea = bestNameMatch(exactAreaMatches, areaCandidates);
+            matchedCity = matchedArea?.city || null;
+        }
+    }
 
     if (!matchedCity) {
         const detected = address.city || address.district || address.subregion || address.region;

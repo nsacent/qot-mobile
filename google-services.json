@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "617443933769",
+    "project_id": "qot-mobile-fd6c3",
+    "storage_bucket": "qot-mobile-fd6c3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:617443933769:android:80d27542a9855292b70998",
+        "android_client_info": {
+          "package_name": "ug.qot.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAe0WaGHfL0XLbz2zlgqMAu-X5HalNamLA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

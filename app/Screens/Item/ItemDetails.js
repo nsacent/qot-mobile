@@ -459,7 +459,7 @@ const ItemDetails = ({ route, navigation }) => {
                         </View>
 
                         <Text style={[FONTS.h6, { color: colors.title, marginTop: 22, marginBottom: 10 }]}>Seller information</Text>
-                        <TouchableOpacity disabled={isOwner} onPress={() => navigation.navigate('Anotherprofile', { sellerId: listing.seller })} activeOpacity={0.84} style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderColor, borderRadius: 16, overflow: 'hidden' }}>
+                        <TouchableOpacity disabled={isOwner} onPress={() => navigation.navigate('Anotherprofile', { sellerId: listing.seller, listingId: listing.id, listingTitle: listing.title })} activeOpacity={0.84} style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderColor, borderRadius: 16, overflow: 'hidden' }}>
                             <View style={{ padding: 14, flexDirection: 'row', alignItems: 'center' }}>
                                 <Image source={seller?.avatar ? { uri: seller.avatar } : IMAGES.user} style={{ height: 58, width: 58, borderRadius: 29, backgroundColor: colors.border }} resizeMode="cover" />
                                 <View style={{ flex: 1, marginLeft: 11 }}>
@@ -497,9 +497,24 @@ const ItemDetails = ({ route, navigation }) => {
                                 ))}
                             </View>
                             {!isOwner && (
-                                <View style={{ padding: 11, borderTopWidth: 1, borderTopColor: colors.border }}>
-                                    <TouchableOpacity disabled={updatingFollow} onPress={(event) => { event.stopPropagation?.(); toggleFollow(); }} style={{ height: 43, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary, backgroundColor: following ? colors.card : COLORS.primary, alignItems: 'center', justifyContent: 'center' }}>
+                                <View style={{ padding: 11, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: 'row', gap: 9 }}>
+                                    <TouchableOpacity disabled={updatingFollow} onPress={(event) => { event.stopPropagation?.(); toggleFollow(); }} style={{ flex: 1, height: 43, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary, backgroundColor: following ? colors.card : COLORS.primary, alignItems: 'center', justifyContent: 'center' }}>
                                         {updatingFollow ? <ActivityIndicator size="small" color={following ? COLORS.primary : COLORS.white} /> : <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: following ? COLORS.primary : COLORS.white }]}>{following ? 'Following' : 'Follow seller'}</Text>}
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={(event) => {
+                                            event.stopPropagation?.();
+                                            navigation.navigate('SellerReviews', {
+                                                sellerId: listing.seller,
+                                                sellerName: seller?.full_name || listing.seller_name,
+                                                listingId: listing.id,
+                                                listingTitle: listing.title,
+                                            });
+                                        }}
+                                        style={{ flex: 1, height: 43, borderRadius: 10, borderWidth: 1, borderColor: '#E89A00', backgroundColor: '#FFF8E8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        <FeatherIcon name="star" size={15} color="#B56700" />
+                                        <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: '#8A5400', marginLeft: 6 }]}>Review seller</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}

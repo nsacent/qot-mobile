@@ -144,6 +144,22 @@ export const NotificationProvider = ({ children }) => {
     }, [isAuthenticated]);
 
     useEffect(() => {
+        if (!isAuthenticated) return undefined;
+
+        const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
+            refreshNotifications().catch(() => {});
+        });
+        const tokenSubscription = Notifications.addPushTokenListener(() => {
+            enablePushNotifications().catch(() => {});
+        });
+
+        return () => {
+            receivedSubscription.remove();
+            tokenSubscription.remove();
+        };
+    }, [enablePushNotifications, isAuthenticated, refreshNotifications]);
+
+    useEffect(() => {
         if (!isAuthenticated) {
             setPushStatus('idle');
             return;

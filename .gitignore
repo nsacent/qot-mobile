@@ -7,3 +7,8 @@ builds/
 .env
 .env.*
 !.env.example
+
+# Google service-account private keys must never be committed.
+*service-account*.json
+*firebase-adminsdk*.json
+play-store-key.json

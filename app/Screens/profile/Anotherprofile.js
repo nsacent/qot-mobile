@@ -29,6 +29,8 @@ const Anotherprofile = ({ navigation, route }) => {
     const { colors } = useTheme();
     const { user } = useAuth();
     const sellerId = route?.params?.sellerId;
+    const sourceListingId = route?.params?.listingId;
+    const sourceListingTitle = route?.params?.listingTitle;
     const [seller, setSeller] = useState(null);
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -174,9 +176,9 @@ const Anotherprofile = ({ navigation, route }) => {
                             </View>
                         )}
                         {seller && (
-                            <TouchableOpacity onPress={() => navigation.navigate('SellerReviews', { sellerId: seller.id, sellerName: seller.full_name })} style={{ minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.card, paddingHorizontal: 13, marginBottom: 18, flexDirection: 'row', alignItems: 'center' }}>
+                            <TouchableOpacity onPress={() => navigation.navigate('SellerReviews', { sellerId: seller.id, sellerName: seller.full_name, listingId: sourceListingId, listingTitle: sourceListingTitle })} style={{ minHeight: 54, borderRadius: 14, borderWidth: 1, borderColor: isOwnProfile ? colors.borderColor : '#F1D2A8', backgroundColor: isOwnProfile ? colors.card : '#FFF9EF', paddingHorizontal: 13, marginBottom: 18, flexDirection: 'row', alignItems: 'center' }}>
                                 <View style={{ height: 35, width: 35, borderRadius: 11, backgroundColor: '#FFF3DC', alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="star" size={16} color="#B56700" /></View>
-                                <View style={{ flex: 1, marginLeft: 10 }}><Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>Seller reviews</Text><Text style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }]}>Read feedback from QOT buyers</Text></View>
+                                <View style={{ flex: 1, marginLeft: 10 }}><Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>{isOwnProfile ? 'Seller reviews' : 'Review this seller'}</Text><Text style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }]}>{isOwnProfile ? 'Read feedback from QOT buyers' : 'Write a review or read buyer feedback'}</Text></View>
                                 <FeatherIcon name="chevron-right" size={18} color={colors.textLight} />
                             </TouchableOpacity>
                         )}

@@ -45,7 +45,7 @@ const SellerReviews = ({ navigation, route }) => {
     const sellerId = route.params?.sellerId;
     const listingId = route.params?.listingId;
     const sellerName = route.params?.sellerName || 'QOT seller';
-    const listingTitle = route.params?.listingTitle || 'this ad';
+    const listingTitle = route.params?.listingTitle || '';
     const [reviews, setReviews] = useState([]);
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -95,9 +95,13 @@ const SellerReviews = ({ navigation, route }) => {
         count: reviews.filter((review) => Number(review.rating) === value).length,
     })), [reviews]);
 
-    const canReview = Boolean(listingId && String(user?.id) !== String(sellerId));
+    const canReview = Boolean(sellerId && String(user?.id) !== String(sellerId));
 
     const openReviewForm = () => {
+        if (!user) {
+            navigation.navigate('SignIn');
+            return;
+        }
         if (!hasPrimaryVerification(user)) {
             navigation.navigate('VerifyAccount');
             return;
@@ -238,7 +242,7 @@ const SellerReviews = ({ navigation, route }) => {
                                     <View style={{ height: 46, width: 46, borderRadius: 15, backgroundColor: '#FFF3DC', alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="star" size={21} color="#B56700" /></View>
                                     <View style={{ flex: 1, minWidth: 0, marginLeft: 11 }}>
                                         <Text style={[FONTS.h6, { color: colors.title }]}>Review {sellerName}</Text>
-                                        <Text numberOfLines={2} style={[FONTS.fontXs, { color: colors.text, lineHeight: 17, marginTop: 3 }]}>Share your experience for “{listingTitle}”.</Text>
+                                        <Text numberOfLines={2} style={[FONTS.fontXs, { color: colors.text, lineHeight: 17, marginTop: 3 }]}>{listingTitle ? `Share your experience for “${listingTitle}”.` : 'Share an honest experience you had with this seller.'}</Text>
                                     </View>
                                     <TouchableOpacity disabled={submitting} onPress={() => setFormOpen(false)} style={{ height: 36, width: 36, borderRadius: 18, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="x" size={18} color={colors.text} /></TouchableOpacity>
                                 </View>

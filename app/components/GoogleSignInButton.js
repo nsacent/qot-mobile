@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useTheme } from '@react-navigation/native';
 import { COLORS, FONTS, IMAGES } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
@@ -53,8 +53,9 @@ const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
         || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
         || '',
     ).trim();
+    const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-    if (!webClientId || (Platform.OS === 'ios' && !iosClientId)) return null;
+    if (!webClientId) return null;
 
     const handleGoogleSignIn = async () => {
         if (loading) return;
@@ -63,6 +64,13 @@ const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
         setError('');
 
         try {
+            if (isExpoGo) {
+                throw new Error('EXPO_GO_NATIVE_GOOGLE');
+            }
+            if (Platform.OS === 'ios' && !iosClientId) {
+                throw new Error('GOOGLE_IOS_CLIENT_ID_MISSING');
+            }
+
             // Loaded only when pressed so Expo Go can still run the rest of the app.
             // The native Google module is included in development and production builds.
             const { GoogleSignin } = require('@react-native-google-signin/google-signin');
@@ -96,8 +104,15 @@ const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
             });
         } catch (signInError) {
             const code = String(signInError?.code || '');
+            const message = String(signInError?.message || '');
             if (code === 'SIGN_IN_CANCELLED' || code === '12501') return;
-            setError(googleSignInErrorMessage(signInError));
+            if (message === 'EXPO_GO_NATIVE_GOOGLE') {
+                setError('Google sign-in is visible for layout testing, but Expo Go cannot run the native Google login. It will work in the installed QOT iOS test build.');
+            } else if (message === 'GOOGLE_IOS_CLIENT_ID_MISSING') {
+                setError('Google sign-in needs the QOT iOS OAuth Client ID before the iPhone test build can use it.');
+            } else {
+                setError(googleSignInErrorMessage(signInError));
+            }
         } finally {
             setLoading(false);
         }

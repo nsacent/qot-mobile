@@ -35,11 +35,15 @@ const titleCase = (value) => String(value || 'Ad')
 
 const notificationTone = (type) => {
     if (type === 'message') return { icon: 'message-circle', background: '#FFF7ED', color: '#EA580C' };
+    if (type === 'offer') return { icon: 'tag', background: '#FFF7ED', color: '#EA580C' };
     if (type === 'listing_approved') return { icon: 'check-circle', background: '#E9F8EF', color: '#176B44' };
     if (type === 'listing_rejected') return { icon: 'alert-triangle', background: '#FFF0F0', color: '#B42318' };
     if (type === 'listing_expired') return { icon: 'clock', background: '#FFF3DC', color: '#9A5B00' };
     if (type === 'favorite') return { icon: 'heart', background: '#FFF0F4', color: '#B42355' };
     if (type === 'follow') return { icon: 'user-plus', background: '#E9F2FF', color: '#2457C5' };
+    if (type === 'review') return { icon: 'star', background: '#FFF8E1', color: '#A16207' };
+    if (type === 'report') return { icon: 'shield', background: '#E9F2FF', color: '#2457C5' };
+    if (type === 'announcement') return { icon: 'volume-2', background: '#FFF7ED', color: '#EA580C' };
     return { icon: 'bell', background: '#EEF1F5', color: '#586174' };
 };
 

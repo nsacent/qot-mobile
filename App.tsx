@@ -1,10 +1,8 @@
 import 'react-native-gesture-handler';
 import React, { useEffect } from 'react';
-import { Platform, StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import * as NavigationBar from 'expo-navigation-bar';
 import * as SystemUI from 'expo-system-ui';
 import Routes from './app/Navigations/Route';
 import { AuthProvider } from './app/context/AuthContext';
@@ -14,9 +12,11 @@ import { QueryCacheProvider } from './app/cache/queryCache';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { COLORS } from './app/constants/theme';
+import { configurePushNotifications } from './app/services/pushNotifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SystemUI.setBackgroundColorAsync(COLORS.background).catch(() => {});
+configurePushNotifications().catch(() => {});
 
 const App = () =>{
 		const [loaded] = useFonts({
@@ -36,34 +36,6 @@ const App = () =>{
 			SplashScreen.hideAsync().catch(() => {});
 			return undefined;
 		}, [loaded]);
-
-		useEffect(() => {
-			if (Platform.OS !== 'android') return undefined;
-
-			let active = true;
-
-			const applyAndroidSystemBars = async () => {
-				try {
-					StatusBar.setTranslucent(false);
-					StatusBar.setBackgroundColor(COLORS.background, true);
-					StatusBar.setBarStyle('dark-content', true);
-					await NavigationBar.setPositionAsync('relative');
-					if (!active) return;
-					await NavigationBar.setBackgroundColorAsync(COLORS.background);
-					await NavigationBar.setBorderColorAsync(COLORS.background);
-					await NavigationBar.setButtonStyleAsync('dark');
-					await NavigationBar.setVisibilityAsync('visible');
-				} catch {
-					// Static app configuration remains the fallback on older Android devices.
-				}
-			};
-
-			void applyAndroidSystemBars();
-
-			return () => {
-				active = false;
-			};
-		}, []);
 
 		if(!loaded){
 		  return null;

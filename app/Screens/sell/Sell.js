@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
+    InteractionManager,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -130,6 +131,9 @@ const Sell = ({ navigation, route }) => {
     const isEditing = Boolean(listingId);
     const scrollRef = useRef(null);
     const photoLayoutsRef = useRef({});
+    const pendingPhotoActionRef = useRef(null);
+    const photoActionQueuedRef = useRef(false);
+    const photoActionBusyRef = useRef(false);
 
     const [step, setStep] = useState(0);
     const [categories, setCategories] = useState([]);
@@ -370,7 +374,7 @@ const Sell = ({ navigation, route }) => {
     )), [regions]);
     const selectedLocationId = selectedArea ? `area-${selectedArea.id}` : selectedCity ? `city-${selectedCity.id}` : null;
     const selectedLocationLabel = selectedArea
-        ? `${selectedArea.name}, ${selectedCity?.name || selectedArea.city?.name || ''}`
+        ? `${selectedArea.name}, ${selectedArea.city?.name || selectedCity?.name || ''}`
         : selectedCity
             ? `${selectedCity.name}${selectedCity.region_name ? `, ${selectedCity.region_name}` : ''}`
             : '';
@@ -460,66 +464,98 @@ const Sell = ({ navigation, route }) => {
         }
     };
 
-    const pickImages = async () => {
-        setPhotoSourceOpen(false);
+    const runPhotoAction = async (action) => {
+        if (Platform.OS !== 'web' && photoActionBusyRef.current) return;
+        photoActionQueuedRef.current = false;
+        if (Platform.OS !== 'web') photoActionBusyRef.current = true;
+        setError('');
+
         try {
-            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!permission.granted) {
-                setError('Allow QOT to access your photos before choosing images.');
-                return;
+            let result;
+
+            if (action === 'camera') {
+                if (Platform.OS !== 'web') {
+                    let permission = await ImagePicker.getCameraPermissionsAsync();
+                    if (!permission.granted && permission.canAskAgain) {
+                        permission = await ImagePicker.requestCameraPermissionsAsync();
+                    }
+                    if (!permission.granted) {
+                        setError(permission.canAskAgain
+                            ? 'Allow QOT to use your camera before taking an ad photo.'
+                            : 'Camera access is blocked. Open your phone settings, choose QOT or Expo Go, then allow Camera access.');
+                        return;
+                    }
+                }
+
+                result = await ImagePicker.launchCameraAsync({
+                    mediaTypes: ['images'],
+                    allowsEditing: false,
+                    quality: 1,
+                    ...(Platform.OS === 'ios' ? {
+                        presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
+                        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+                    } : {}),
+                });
+            } else {
+                const crop = action === 'crop';
+                result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ['images'],
+                    allowsEditing: crop,
+                    ...(crop ? { aspect: [4, 3] } : {
+                        allowsMultipleSelection: true,
+                        selectionLimit: Math.max(1, maximumPhotos - images.length),
+                        orderedSelection: true,
+                    }),
+                    quality: 1,
+                    ...(Platform.OS === 'ios' ? {
+                        presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
+                        preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+                    } : {}),
+                });
             }
 
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsMultipleSelection: true,
-                selectionLimit: Math.max(1, maximumPhotos - images.length),
-                quality: 1,
-            });
             if (!result.canceled) await addSelectedImages(result.assets);
         } catch (requestError) {
-            setError(requestError.message || 'Your photo library could not be opened.');
+            const fallback = action === 'camera'
+                ? 'The camera could not be opened.'
+                : action === 'crop'
+                    ? 'The photo cropper could not be opened.'
+                    : 'Your photo library could not be opened.';
+            setError(requestError.message || fallback);
+        } finally {
+            if (Platform.OS !== 'web') photoActionBusyRef.current = false;
         }
     };
 
-    const pickAndCropImage = async () => {
-        setPhotoSourceOpen(false);
-        try {
-            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (!permission.granted) {
-                setError('Allow QOT to access your photos before cropping an image.');
-                return;
-            }
+    const choosePhotoAction = (action) => {
+        if (photoActionBusyRef.current || photoActionQueuedRef.current) return;
+        photoActionQueuedRef.current = true;
 
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [4, 3],
-                quality: 1,
-            });
-            if (!result.canceled) await addSelectedImages(result.assets);
-        } catch (requestError) {
-            setError(requestError.message || 'The photo cropper could not be opened.');
+        if (Platform.OS === 'ios') {
+            // iOS cannot reliably present ImagePicker while this React Native
+            // modal is still dismissing. Queue it for the native onDismiss event.
+            pendingPhotoActionRef.current = action;
+            setPhotoSourceOpen(false);
+            return;
         }
+
+        setPhotoSourceOpen(false);
+
+        if (Platform.OS === 'web') {
+            // Browsers require the picker to open in the original button event.
+            void runPhotoAction(action);
+            return;
+        }
+
+        InteractionManager.runAfterInteractions(() => {
+            void runPhotoAction(action);
+        });
     };
 
-    const takePhoto = async () => {
-        setPhotoSourceOpen(false);
-        try {
-            const permission = await ImagePicker.requestCameraPermissionsAsync();
-            if (!permission.granted) {
-                setError('Allow QOT to use your camera before taking an ad photo.');
-                return;
-            }
-
-            const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: false,
-                quality: 1,
-            });
-            if (!result.canceled) await addSelectedImages(result.assets);
-        } catch (requestError) {
-            setError(requestError.message || 'The camera could not be opened.');
-        }
+    const handlePhotoSourceDismiss = () => {
+        const action = pendingPhotoActionRef.current;
+        pendingPhotoActionRef.current = null;
+        if (action) void runPhotoAction(action);
     };
 
     const removeImage = async (image) => {
@@ -600,10 +636,11 @@ const Sell = ({ navigation, route }) => {
         setSelectedArea(null);
         try {
             const { city, area } = await requestCurrentMarketplaceLocation(allCities);
-            setSelectedCity(city);
+            const resolvedCity = area?.city || city;
+            setSelectedCity(resolvedCity);
             setSelectedArea(area || null);
             setCurrentLocationSelected(true);
-            const label = area ? `${area.name}, ${city.name}` : city.name;
+            const label = area ? `${area.name}, ${resolvedCity.name}` : resolvedCity.name;
             setDraftStatus(`Current location set to ${label}.`);
             setLocationMessage({ type: 'success', text: `Location set to ${label}.` });
         } catch (locationError) {
@@ -1064,7 +1101,7 @@ const Sell = ({ navigation, route }) => {
             <MarketplaceSelectionModal visible={locationModal} title="Choose a location" groups={locationGroups} selectedId={selectedLocationId} onSelect={chooseLocation} onClose={() => setLocationModal(false)} searchPlaceholder="Search areas, cities and districts" />
             <MarketplaceSelectionModal visible={Boolean(activeFilter)} title={activeFilter?.name || 'Choose an option'} groups={[{ title: activeFilter?.name || 'Options', items: (activeFilter?.options || []).map((option) => ({ id: option.value, name: option.label })) }]} selectedId={activeFilter ? filterValues[activeFilter.key] : ''} onSelect={(option) => { updateFilter(activeFilter.key, option.id); setActiveFilter(null); }} onClose={() => setActiveFilter(null)} searchPlaceholder="Search options" />
 
-            <Modal visible={photoSourceOpen} transparent animationType="fade" onRequestClose={() => setPhotoSourceOpen(false)}>
+            <Modal visible={photoSourceOpen} transparent animationType="fade" onDismiss={handlePhotoSourceDismiss} onRequestClose={() => setPhotoSourceOpen(false)}>
                 <Pressable onPress={() => setPhotoSourceOpen(false)} style={{ flex: 1, backgroundColor: 'rgba(12,16,28,.55)', padding: 20, alignItems: 'center', justifyContent: 'center' }}>
                     <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 420, borderRadius: 20, padding: 19, backgroundColor: colors.card }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -1073,18 +1110,18 @@ const Sell = ({ navigation, route }) => {
                             <TouchableOpacity onPress={() => setPhotoSourceOpen(false)} style={{ height: 38, width: 38, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="x" size={21} color={colors.text} /></TouchableOpacity>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
-                            <TouchableOpacity onPress={takePhoto} style={{ flex: 1, minHeight: 112, borderRadius: 15, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+                            <TouchableOpacity onPress={() => choosePhotoAction('camera')} style={{ flex: 1, minHeight: 112, borderRadius: 15, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 12 }}>
                                 <View style={{ height: 43, width: 43, borderRadius: 14, backgroundColor: '#FFF0E6', alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="camera" size={21} color={COLORS.primary} /></View>
                                 <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginTop: 9 }]}>Take photo</Text>
                                 <Text style={[FONTS.fontXs, { color: colors.text, fontSize: 9, marginTop: 2 }]}>Use your camera</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={pickImages} style={{ flex: 1, minHeight: 112, borderRadius: 15, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+                            <TouchableOpacity onPress={() => choosePhotoAction('library')} style={{ flex: 1, minHeight: 112, borderRadius: 15, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 12 }}>
                                 <View style={{ height: 43, width: 43, borderRadius: 14, backgroundColor: '#E9F2FF', alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="image" size={21} color="#2457C5" /></View>
                                 <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginTop: 9 }]}>Choose photos</Text>
                                 <Text style={[FONTS.fontXs, { color: colors.text, fontSize: 9, marginTop: 2 }]}>Select several</Text>
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity onPress={pickAndCropImage} style={{ minHeight: 52, borderRadius: 14, borderWidth: 1, borderColor: `${COLORS.primary}40`, backgroundColor: `${COLORS.primary}0D`, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, marginTop: 10 }}>
+                        <TouchableOpacity onPress={() => choosePhotoAction('crop')} style={{ minHeight: 52, borderRadius: 14, borderWidth: 1, borderColor: `${COLORS.primary}40`, backgroundColor: `${COLORS.primary}0D`, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, marginTop: 10 }}>
                             <View style={{ height: 34, width: 34, borderRadius: 11, backgroundColor: `${COLORS.primary}18`, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="crop" size={17} color={COLORS.primary} /></View>
                             <View style={{ flex: 1, marginLeft: 10 }}><Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>Choose and crop one photo</Text><Text style={[FONTS.fontXs, { color: colors.text, fontSize: 9, marginTop: 1 }]}>Use your phone's cropper for a clean 4:3 ad photo</Text></View>
                             <FeatherIcon name="chevron-right" size={18} color={COLORS.primary} />
