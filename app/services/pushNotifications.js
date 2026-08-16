@@ -7,6 +7,7 @@ import { apiRequest } from '../api/client';
 import { getDeviceId } from '../utils/deviceIdentity';
 
 const PUSH_TOKEN_KEY = 'qot.expoPushToken';
+let registrationPromise = null;
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -34,6 +35,9 @@ export const configurePushNotifications = async () => {
 };
 
 const syncPushTokenWithQOT = async (expoPushToken) => {
+    const previouslySyncedToken = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+    if (previouslySyncedToken === expoPushToken) return false;
+
     await apiRequest('/notifications/devices/', {
         method: 'POST',
         authenticated: true,
@@ -44,9 +48,10 @@ const syncPushTokenWithQOT = async (expoPushToken) => {
         },
     });
     await AsyncStorage.setItem(PUSH_TOKEN_KEY, expoPushToken);
+    return true;
 };
 
-export const registerForPushNotifications = async () => {
+const performPushRegistration = async () => {
     if (Platform.OS === 'web') return { status: 'unsupported' };
     if (!Device.isDevice) return { status: 'physical_device_required' };
 
@@ -69,8 +74,20 @@ export const registerForPushNotifications = async () => {
     if (!projectId) return { status: 'project_not_configured' };
 
     const expoPushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    await syncPushTokenWithQOT(expoPushToken);
-    return { status: 'registered', token: expoPushToken };
+    const synced = await syncPushTokenWithQOT(expoPushToken);
+    return { status: synced ? 'registered' : 'already_registered', token: expoPushToken };
+};
+
+export const registerForPushNotifications = async () => {
+    // iOS may emit several token callbacks together. Share one registration so
+    // they cannot create a burst of identical API/database requests.
+    if (!registrationPromise) {
+        registrationPromise = performPushRegistration().finally(() => {
+            registrationPromise = null;
+        });
+    }
+
+    return registrationPromise;
 };
 
 export const unregisterPushNotifications = async () => {

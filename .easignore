@@ -4,6 +4,7 @@ node_modules/
 .git/
 builds/
 doc/
+play-store/
 .DS_Store
 **/.DS_Store
 .env

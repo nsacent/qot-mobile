@@ -19,6 +19,12 @@
         "simulator": true
       }
     },
+    "ios-preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    },
     "production": {
       "environment": "production",
       "android": {
@@ -28,6 +34,9 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "ascAppId": "6801803137"
+      },
       "android": {
         "track": "internal",
         "releaseStatus": "completed"

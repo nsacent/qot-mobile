@@ -49,6 +49,10 @@ const parseResponse = async (response) => {
 
 let refreshPromise = null;
 
+const isInvalidRefreshResponse = (status) => (
+    status === 400 || status === 401 || status === 403
+);
+
 const refreshAccessToken = async () => {
     const refresh = getSession()?.tokens?.refresh;
     if (!refresh) return null;
@@ -56,20 +60,41 @@ const refreshAccessToken = async () => {
     if (!refreshPromise) {
         refreshPromise = (async () => {
             const deviceId = await getDeviceId().catch(() => '');
-            const response = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-QOT-Platform': Platform.OS,
-                    ...(deviceId ? { 'X-QOT-Device-ID': deviceId } : {}),
-                },
-                body: JSON.stringify({ refresh }),
-            });
+            let response;
+
+            try {
+                response = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-QOT-Platform': Platform.OS,
+                        ...(deviceId ? { 'X-QOT-Device-ID': deviceId } : {}),
+                    },
+                    body: JSON.stringify({ refresh }),
+                });
+            } catch {
+                throw new ApiError(
+                    'Could not reach QOT. Your sign-in is still saved; reconnect and try again.',
+                    0,
+                    null,
+                );
+            }
+
             const data = await parseResponse(response);
 
             if (!response.ok || !data?.access) {
-                await clearSession();
-                return null;
+                // A temporary outage must never sign the user out. Only a response
+                // that proves the refresh token is invalid/revoked may clear it.
+                if (isInvalidRefreshResponse(response.status)) {
+                    await clearSession();
+                    return null;
+                }
+
+                throw new ApiError(
+                    firstErrorMessage(data),
+                    response.status,
+                    data,
+                );
             }
 
             await updateTokens({

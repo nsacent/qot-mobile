@@ -10,9 +10,9 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "ug.qot.mobile",
-      "buildNumber": "12",
+      "buildNumber": "15",
       "associatedDomains": [
         "applinks:qot.ug"
       ],
@@ -76,11 +76,21 @@
     },
     "extra": {
       "googleWebClientId": "469848009032-cp7lad868jnfbjcn4qjgifumnqvm99m7.apps.googleusercontent.com",
+      "googleIosClientId": "469848009032-57ouqafidp9c89pk1ngicg25qv5kn51l.apps.googleusercontent.com",
       "eas": {
         "projectId": "911e4830-a036-4af8-b5a5-26048327e0cc"
       }
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "privacyManifestAggregationEnabled": true
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {

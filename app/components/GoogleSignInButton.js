@@ -29,10 +29,19 @@ const googleSignInErrorMessage = (error) => {
         return 'Google Play Services is unavailable or needs updating on this phone.';
     }
     if (/DEVELOPER_ERROR|ApiException:\s*10|\bcode\s*[:=]?\s*10\b/i.test(diagnostic) || code === '10') {
-        return 'Google sign-in is still activating for this QOT build. Please try again in a few minutes.';
+        return 'This QOT build is not registered correctly with Google. Please update the app and try again.';
     }
     if (/NETWORK_ERROR|network request failed|unable to resolve host|timeout/i.test(diagnostic)) {
         return 'Google sign-in could not reach the internet. Check your connection and try again.';
+    }
+    if (error?.status === 0) {
+        return 'Google sign-in could not reach QOT. Check your connection and try again.';
+    }
+    if (Number(error?.status) >= 500) {
+        return 'Google sign-in is temporarily unavailable. Please try again shortly.';
+    }
+    if ([400, 403, 409].includes(error?.status) && message) {
+        return message;
     }
 
     return 'Google sign-in could not be completed. Please try again.';
@@ -109,7 +118,7 @@ const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
             if (message === 'EXPO_GO_NATIVE_GOOGLE') {
                 setError('Google sign-in is visible for layout testing, but Expo Go cannot run the native Google login. It will work in the installed QOT iOS test build.');
             } else if (message === 'GOOGLE_IOS_CLIENT_ID_MISSING') {
-                setError('Google sign-in needs the QOT iOS OAuth Client ID before the iPhone test build can use it.');
+                setError('Google sign-in is unavailable in this QOT build. Please update the app and try again.');
             } else {
                 setError(googleSignInErrorMessage(signInError));
             }

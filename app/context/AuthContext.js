@@ -34,12 +34,23 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
 
+            // Restore the locally saved account immediately. The server refresh
+            // below keeps it current, but a weak connection must not look like a
+            // logout when the app is opened.
+            if (active && stored.user) setUser(stored.user);
+
             try {
                 const currentUser = await authApi.getCurrentUser();
                 if (active) setUser(currentUser);
                 await saveSession({ ...getSession(), user: currentUser });
-            } catch {
-                await clearSession();
+            } catch (requestError) {
+                const sessionWasRejected = [401, 403, 404].includes(requestError?.status)
+                    || !getSession()?.tokens?.refresh;
+
+                if (sessionWasRejected) {
+                    await clearSession();
+                    if (active) setUser(null);
+                }
             } finally {
                 if (active) setIsBootstrapping(false);
             }
