@@ -130,15 +130,21 @@ export const NotificationProvider = ({ children }) => {
         return () => clearInterval(timer);
     }, [isAuthenticated, refreshNotifications]);
 
-    const enablePushNotifications = useCallback(async () => {
+    const enablePushNotifications = useCallback(async (options = {}) => {
         if (!isAuthenticated) return { status: 'signed_out' };
+        const silent = Boolean(options?.silent);
         setPushStatus('registering');
         try {
             const result = await registerForPushNotifications();
-            if (mounted.current) setPushStatus(result.status);
-            return result;
+            const resolvedStatus = result.status === 'already_registered'
+                ? 'registered'
+                : result.status;
+            if (mounted.current) setPushStatus(resolvedStatus);
+            return { ...result, status: resolvedStatus };
         } catch (requestError) {
-            if (mounted.current) setPushStatus('error');
+            // Automatic background registration quietly retries later. Only a
+            // user-triggered attempt should show a device-alert error.
+            if (mounted.current) setPushStatus(silent ? 'idle' : 'error');
             throw requestError;
         }
     }, [isAuthenticated]);
@@ -150,7 +156,7 @@ export const NotificationProvider = ({ children }) => {
             refreshNotifications().catch(() => {});
         });
         const tokenSubscription = Notifications.addPushTokenListener(() => {
-            enablePushNotifications().catch(() => {});
+            enablePushNotifications({ silent: true }).catch(() => {});
         });
 
         return () => {
@@ -164,7 +170,7 @@ export const NotificationProvider = ({ children }) => {
             setPushStatus('idle');
             return;
         }
-        enablePushNotifications().catch(() => {});
+        enablePushNotifications({ silent: true }).catch(() => {});
     }, [enablePushNotifications, isAuthenticated, user?.id]);
 
     useEffect(() => {
