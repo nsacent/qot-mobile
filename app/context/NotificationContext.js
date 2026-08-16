@@ -135,7 +135,7 @@ export const NotificationProvider = ({ children }) => {
         const silent = Boolean(options?.silent);
         setPushStatus('registering');
         try {
-            const result = await registerForPushNotifications();
+            const result = await registerForPushNotifications({ userId: user?.id });
             const resolvedStatus = result.status === 'already_registered'
                 ? 'registered'
                 : result.status;
@@ -147,7 +147,7 @@ export const NotificationProvider = ({ children }) => {
             if (mounted.current) setPushStatus(silent ? 'idle' : 'error');
             throw requestError;
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, user?.id]);
 
     useEffect(() => {
         if (!isAuthenticated) return undefined;

@@ -7,7 +7,8 @@ import { apiRequest } from '../api/client';
 import { getDeviceId } from '../utils/deviceIdentity';
 
 const PUSH_TOKEN_KEY = 'qot.expoPushToken';
-let registrationPromise = null;
+const registrationPromises = new Map();
+const registeredSessions = new Set();
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -34,9 +35,19 @@ export const configurePushNotifications = async () => {
     await setAndroidChannel();
 };
 
-const syncPushTokenWithQOT = async (expoPushToken) => {
-    const previouslySyncedToken = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
-    if (previouslySyncedToken === expoPushToken) return false;
+const syncPushTokenWithQOT = async (expoPushToken, userId) => {
+    const deviceId = await getDeviceId();
+    const registrationKey = [
+        String(userId || 'signed-in-user'),
+        Platform.OS,
+        deviceId,
+        expoPushToken,
+    ].join(':');
+
+    // Deduplicate callbacks only for this running app session. Persistently
+    // skipping the request can leave Android tied to an old account or a
+    // server record that no longer exists after a reinstall/restore.
+    if (registeredSessions.has(registrationKey)) return false;
 
     await apiRequest('/notifications/devices/', {
         method: 'POST',
@@ -44,14 +55,15 @@ const syncPushTokenWithQOT = async (expoPushToken) => {
         body: {
             expo_push_token: expoPushToken,
             platform: Platform.OS,
-            device_id: await getDeviceId(),
+            device_id: deviceId,
         },
     });
     await AsyncStorage.setItem(PUSH_TOKEN_KEY, expoPushToken);
+    registeredSessions.add(registrationKey);
     return true;
 };
 
-const performPushRegistration = async () => {
+const performPushRegistration = async (userId) => {
     if (Platform.OS === 'web') return { status: 'unsupported' };
     if (!Device.isDevice) return { status: 'physical_device_required' };
 
@@ -74,20 +86,22 @@ const performPushRegistration = async () => {
     if (!projectId) return { status: 'project_not_configured' };
 
     const expoPushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    const synced = await syncPushTokenWithQOT(expoPushToken);
+    const synced = await syncPushTokenWithQOT(expoPushToken, userId);
     return { status: synced ? 'registered' : 'already_registered', token: expoPushToken };
 };
 
-export const registerForPushNotifications = async () => {
-    // iOS may emit several token callbacks together. Share one registration so
-    // they cannot create a burst of identical API/database requests.
-    if (!registrationPromise) {
-        registrationPromise = performPushRegistration().finally(() => {
-            registrationPromise = null;
+export const registerForPushNotifications = async ({ userId } = {}) => {
+    // Both Android and iOS can emit several token callbacks together. Share
+    // one registration per account so they cannot create an API request burst.
+    const promiseKey = String(userId || 'signed-in-user');
+    if (!registrationPromises.has(promiseKey)) {
+        const registrationPromise = performPushRegistration(userId).finally(() => {
+            registrationPromises.delete(promiseKey);
         });
+        registrationPromises.set(promiseKey, registrationPromise);
     }
 
-    return registrationPromise;
+    return registrationPromises.get(promiseKey);
 };
 
 export const unregisterPushNotifications = async () => {
@@ -101,5 +115,7 @@ export const unregisterPushNotifications = async () => {
         });
     } finally {
         await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+        registeredSessions.clear();
+        registrationPromises.clear();
     }
 };
