@@ -221,7 +221,31 @@ export const getSellerReviewSummary = (sellerId, { force = false } = {}) => cach
     force,
 });
 
-export const createSellerReview = async ({ sellerId, listingId, rating, comment }) => {
+export const getTransactionReviewEligibility = (listingId, { force = false } = {}) => cachedQuery({
+    key: ['account', 'reviews', sessionScope(), 'eligibility', listingId],
+    queryFn: () => apiRequest(`/reviews/eligibility/?listing=${listingId}`, { authenticated: true }),
+    staleTime: CACHE_TIMES.account,
+    scope: 'session',
+    force,
+});
+
+export const getEligibleTransactionReviews = ({ force = false } = {}) => cachedQuery({
+    key: ['account', 'reviews', sessionScope(), 'eligible'],
+    queryFn: async () => collection(await apiRequest('/reviews/eligible/', { authenticated: true })),
+    staleTime: CACHE_TIMES.account,
+    scope: 'session',
+    force,
+});
+
+export const createSellerReview = async ({
+    sellerId,
+    listingId,
+    rating,
+    itemAccuracyRating,
+    itemConditionRating,
+    communicationRating,
+    comment,
+}) => {
     const result = await apiRequest('/reviews/', {
         method: 'POST',
         authenticated: true,
@@ -229,9 +253,13 @@ export const createSellerReview = async ({ sellerId, listingId, rating, comment 
             seller: sellerId,
             listing: listingId,
             rating,
+            item_accuracy_rating: itemAccuracyRating,
+            item_condition_rating: itemConditionRating,
+            communication_rating: communicationRating,
             comment: String(comment || '').trim(),
         },
     });
     await invalidateSellerCaches(sellerId);
+    await queryClient.invalidateQueries({ queryKey: cacheKey('account', 'reviews') });
     return result;
 };

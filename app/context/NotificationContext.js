@@ -8,12 +8,13 @@ import React, {
     useState,
 } from 'react';
 import * as Notifications from 'expo-notifications';
+import { AppState } from 'react-native';
 import {
     getNotifications,
     markAllNotificationsRead as markAllReadRequest,
     markNotificationRead as markReadRequest,
 } from '../api/account';
-import { buildChatSocketUrl, getChatSocketTicket } from '../api/chats';
+import { buildChatSocketUrl, getChatSocketTicket, getChatThreads } from '../api/chats';
 import { useAuth } from './AuthContext';
 import { registerForPushNotifications } from '../services/pushNotifications';
 
@@ -36,6 +37,7 @@ export const NotificationProvider = ({ children }) => {
     const [error, setError] = useState('');
     const [liveConnected, setLiveConnected] = useState(false);
     const [pushStatus, setPushStatus] = useState('idle');
+    const [unreadMessageCount, setUnreadMessageCount] = useState(0);
     const mounted = useRef(true);
 
     const refreshNotifications = useCallback(async (showLoading = false) => {
@@ -57,6 +59,23 @@ export const NotificationProvider = ({ children }) => {
             throw requestError;
         } finally {
             if (mounted.current && showLoading) setLoading(false);
+        }
+    }, [isAuthenticated]);
+
+    const refreshUnreadMessages = useCallback(async () => {
+        if (!isAuthenticated) {
+            setUnreadMessageCount(0);
+            return 0;
+        }
+
+        try {
+            const data = await getChatThreads({ folder: 'unread', force: true });
+            const count = Number(data.tabs?.unread || 0);
+            if (mounted.current) setUnreadMessageCount(count);
+            return count;
+        } catch {
+            // Keep the last known count during a temporary connection failure.
+            return null;
         }
     }, [isAuthenticated]);
 
@@ -101,9 +120,8 @@ export const NotificationProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        const unreadCount = notifications.filter((item) => !item.is_read).length;
-        Notifications.setBadgeCountAsync(unreadCount).catch(() => {});
-    }, [notifications]);
+        Notifications.setBadgeCountAsync(unreadMessageCount).catch(() => {});
+    }, [unreadMessageCount]);
 
     useEffect(() => {
         if (!isAuthenticated) return undefined;
@@ -121,14 +139,31 @@ export const NotificationProvider = ({ children }) => {
     useEffect(() => {
         if (!isAuthenticated) {
             setNotifications([]);
+            setUnreadMessageCount(0);
             setError('');
             return undefined;
         }
 
         refreshNotifications(true).catch(() => {});
-        const timer = setInterval(() => refreshNotifications().catch(() => {}), 30000);
+        refreshUnreadMessages().catch(() => {});
+        const timer = setInterval(() => {
+            refreshNotifications().catch(() => {});
+            refreshUnreadMessages().catch(() => {});
+        }, 30000);
         return () => clearInterval(timer);
-    }, [isAuthenticated, refreshNotifications]);
+    }, [isAuthenticated, refreshNotifications, refreshUnreadMessages]);
+
+    useEffect(() => {
+        if (!isAuthenticated) return undefined;
+
+        const subscription = AppState.addEventListener('change', (state) => {
+            if (state !== 'active') return;
+            refreshNotifications().catch(() => {});
+            refreshUnreadMessages().catch(() => {});
+        });
+
+        return () => subscription.remove();
+    }, [isAuthenticated, refreshNotifications, refreshUnreadMessages]);
 
     const enablePushNotifications = useCallback(async (options = {}) => {
         if (!isAuthenticated) return { status: 'signed_out' };
@@ -154,6 +189,7 @@ export const NotificationProvider = ({ children }) => {
 
         const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
             refreshNotifications().catch(() => {});
+            refreshUnreadMessages().catch(() => {});
         });
         const tokenSubscription = Notifications.addPushTokenListener(() => {
             enablePushNotifications({ silent: true }).catch(() => {});
@@ -163,7 +199,7 @@ export const NotificationProvider = ({ children }) => {
             receivedSubscription.remove();
             tokenSubscription.remove();
         };
-    }, [enablePushNotifications, isAuthenticated, refreshNotifications]);
+    }, [enablePushNotifications, isAuthenticated, refreshNotifications, refreshUnreadMessages]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -197,6 +233,9 @@ export const NotificationProvider = ({ children }) => {
                         const payload = JSON.parse(event.data);
                         if (payload.type === 'notification' && payload.notification && active) {
                             setNotifications((items) => addOrReplaceNotification(items, payload.notification));
+                            if (['message', 'offer'].includes(payload.notification.notification_type)) {
+                                refreshUnreadMessages().catch(() => {});
+                            }
                         }
                     } catch {
                         // Ignore malformed socket messages and keep the connection alive.
@@ -224,26 +263,30 @@ export const NotificationProvider = ({ children }) => {
             socket?.close();
             setLiveConnected(false);
         };
-    }, [isAuthenticated, user?.id, user?.is_verified]);
+    }, [isAuthenticated, refreshUnreadMessages, user?.id, user?.is_verified]);
 
     const value = useMemo(() => ({
         notifications,
         unreadCount: notifications.filter((item) => !item.is_read).length,
+        unreadMessageCount,
         loading,
         error,
         liveConnected,
         pushStatus,
         refreshNotifications,
+        refreshUnreadMessages,
         markRead,
         markAllRead,
         enablePushNotifications,
     }), [
         notifications,
+        unreadMessageCount,
         loading,
         error,
         liveConnected,
         pushStatus,
         refreshNotifications,
+        refreshUnreadMessages,
         markRead,
         markAllRead,
         enablePushNotifications,

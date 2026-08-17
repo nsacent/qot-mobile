@@ -25,12 +25,26 @@ import {
     createSellerReview,
     getSellerReviews,
     getSellerReviewSummary,
+    getTransactionReviewEligibility,
 } from '../../api/account';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '../../utils/formatters';
 import { hasPrimaryVerification } from '../../utils/verification';
 
 const ratingLabels = ['', 'Very poor', 'Poor', 'Average', 'Good', 'Excellent'];
+
+const RatingPickerRow = ({ label, value, onChange, colors }) => (
+    <View style={{ minHeight: 43, borderRadius: 12, backgroundColor: colors.background, paddingHorizontal: 10, marginTop: 7, flexDirection: 'row', alignItems: 'center' }}>
+        <Text numberOfLines={1} style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title, flex: 1 }]}>{label}</Text>
+        <View style={{ flexDirection: 'row' }}>
+            {[1, 2, 3, 4, 5].map((rating) => (
+                <TouchableOpacity key={rating} onPress={() => onChange(rating)} style={{ height: 32, width: 30, alignItems: 'center', justifyContent: 'center' }}>
+                    <FontAwesomeIcon name="star" size={14} color={rating <= value ? '#F59E0B' : colors.textLight} />
+                </TouchableOpacity>
+            ))}
+        </View>
+    </View>
+);
 
 const initials = (name) => String(name || 'QOT user')
     .split(/\s+/)
@@ -48,11 +62,15 @@ const SellerReviews = ({ navigation, route }) => {
     const listingTitle = route.params?.listingTitle || '';
     const [reviews, setReviews] = useState([]);
     const [summary, setSummary] = useState(null);
+    const [eligibility, setEligibility] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState('');
     const [formOpen, setFormOpen] = useState(false);
     const [rating, setRating] = useState(5);
+    const [accuracyRating, setAccuracyRating] = useState(5);
+    const [conditionRating, setConditionRating] = useState(5);
+    const [communicationRating, setCommunicationRating] = useState(5);
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
@@ -67,19 +85,23 @@ const SellerReviews = ({ navigation, route }) => {
         refresh ? setRefreshing(true) : setLoading(true);
         setError('');
         try {
-            const [reviewData, summaryData] = await Promise.all([
+            const [reviewData, summaryData, eligibilityData] = await Promise.all([
                 getSellerReviews(sellerId, { force: refresh }),
                 getSellerReviewSummary(sellerId, { force: refresh }),
+                user && listingId && String(user.id) !== String(sellerId)
+                    ? getTransactionReviewEligibility(listingId, { force: refresh }).catch(() => null)
+                    : Promise.resolve(null),
             ]);
             setReviews(reviewData);
             setSummary(summaryData);
+            setEligibility(eligibilityData);
         } catch (requestError) {
             setError(requestError.message || 'Seller reviews could not be loaded.');
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [sellerId]);
+    }, [listingId, sellerId, user?.id]);
 
     useEffect(() => {
         loadReviews();
@@ -95,7 +117,7 @@ const SellerReviews = ({ navigation, route }) => {
         count: reviews.filter((review) => Number(review.rating) === value).length,
     })), [reviews]);
 
-    const canReview = Boolean(sellerId && String(user?.id) !== String(sellerId));
+    const canReview = Boolean(eligibility?.eligible && !existingReview);
 
     const openReviewForm = () => {
         if (!user) {
@@ -104,6 +126,10 @@ const SellerReviews = ({ navigation, route }) => {
         }
         if (!hasPrimaryVerification(user)) {
             navigation.navigate('VerifyAccount');
+            return;
+        }
+        if (!canReview) {
+            setSuccess(eligibility?.reason || 'Only a buyer with an accepted offer can review this purchase.');
             return;
         }
         setFormError('');
@@ -120,10 +146,21 @@ const SellerReviews = ({ navigation, route }) => {
         setSubmitting(true);
         setFormError('');
         try {
-            await createSellerReview({ sellerId, listingId, rating, comment: cleanComment });
-            setSuccess(`Your review of ${sellerName} was published.`);
+            await createSellerReview({
+                sellerId,
+                listingId,
+                rating,
+                itemAccuracyRating: accuracyRating,
+                itemConditionRating: conditionRating,
+                communicationRating,
+                comment: cleanComment,
+            });
+            setSuccess(`Your verified purchase review of ${sellerName} was published.`);
             setComment('');
             setRating(5);
+            setAccuracyRating(5);
+            setConditionRating(5);
+            setCommunicationRating(5);
             setFormOpen(false);
             await loadReviews();
         } catch (requestError) {
@@ -134,7 +171,7 @@ const SellerReviews = ({ navigation, route }) => {
     };
 
     const renderReview = ({ item }) => (
-        <View style={{ borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderColor, padding: 14, marginBottom: 11 }}>
+            <View style={{ borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderColor, padding: 14, marginBottom: 11 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ height: 42, width: 42, borderRadius: 14, backgroundColor: `${COLORS.primary}12`, alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.primary }]}>{initials(item.reviewer_name)}</Text>
@@ -144,6 +181,7 @@ const SellerReviews = ({ navigation, route }) => {
                     <Text style={[FONTS.fontXs, { color: colors.text, marginTop: 2 }]}>{formatDate(item.created_at)}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
+                    <View style={{ borderRadius: 8, backgroundColor: '#EAF8F0', paddingHorizontal: 6, paddingVertical: 4, marginBottom: 5, flexDirection: 'row', alignItems: 'center' }}><FeatherIcon name="shield" size={9} color="#176B44" /><Text style={[FONTS.fontXs, FONTS.fontTitle, { color: '#176B44', fontSize: 7, marginLeft: 3 }]}>VERIFIED</Text></View>
                     <ReviewStars rating={item.rating} size={12} />
                     <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: '#A86500', marginTop: 3 }]}>{item.rating}/5</Text>
                 </View>
@@ -200,10 +238,10 @@ const SellerReviews = ({ navigation, route }) => {
                                         })}
                                     </View>
                                 </View>
-                                {canReview && (
-                                    <TouchableOpacity disabled={Boolean(existingReview)} onPress={openReviewForm} style={{ height: 46, borderRadius: 12, marginTop: 15, backgroundColor: existingReview ? colors.background : COLORS.primary, borderWidth: existingReview ? 1 : 0, borderColor: colors.borderColor, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                                        <FeatherIcon name={existingReview ? 'check-circle' : 'edit-3'} size={16} color={existingReview ? '#18864B' : COLORS.white} />
-                                        <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: existingReview ? '#18864B' : COLORS.white, marginLeft: 7 }]}>{existingReview ? 'You reviewed this seller' : 'Review this seller'}</Text>
+                                {listingId && String(user?.id) !== String(sellerId) && (
+                                    <TouchableOpacity disabled={!canReview} onPress={openReviewForm} style={{ minHeight: 46, borderRadius: 12, marginTop: 15, paddingHorizontal: 12, backgroundColor: canReview ? COLORS.primary : colors.background, borderWidth: canReview ? 0 : 1, borderColor: colors.borderColor, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                                        <FeatherIcon name={existingReview || eligibility?.already_reviewed ? 'check-circle' : 'shield'} size={16} color={canReview ? COLORS.white : '#18864B'} />
+                                        <Text numberOfLines={2} style={[FONTS.fontXs, FONTS.fontTitle, { color: canReview ? COLORS.white : colors.text, marginLeft: 7, textAlign: 'center' }]}>{existingReview || eligibility?.already_reviewed ? 'Purchase reviewed' : canReview ? 'Review verified purchase' : eligibility?.reason || 'Review available after purchase'}</Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -226,8 +264,8 @@ const SellerReviews = ({ navigation, route }) => {
                     ListEmptyComponent={!error ? (
                         <View style={{ minHeight: 270, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
                             <View style={{ height: 64, width: 64, borderRadius: 21, backgroundColor: '#FFF3DC', alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="star" size={27} color="#B56700" /></View>
-                            <Text style={[FONTS.h6, { color: colors.title, marginTop: 14 }]}>No reviews yet</Text>
-                            <Text style={[FONTS.fontSm, { color: colors.text, textAlign: 'center', lineHeight: 20, marginTop: 5 }]}>{canReview ? 'Be the first buyer to share an honest experience with this seller.' : 'Buyer feedback for this seller will appear here.'}</Text>
+                            <Text style={[FONTS.h6, { color: colors.title, marginTop: 14 }]}>No verified reviews yet</Text>
+                            <Text style={[FONTS.fontSm, { color: colors.text, textAlign: 'center', lineHeight: 20, marginTop: 5 }]}>{canReview ? 'Share your experience from this completed purchase.' : 'Verified purchase feedback for this seller will appear here.'}</Text>
                         </View>
                     ) : null}
                 />
@@ -241,23 +279,20 @@ const SellerReviews = ({ navigation, route }) => {
                                 <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                                     <View style={{ height: 46, width: 46, borderRadius: 15, backgroundColor: '#FFF3DC', alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="star" size={21} color="#B56700" /></View>
                                     <View style={{ flex: 1, minWidth: 0, marginLeft: 11 }}>
-                                        <Text style={[FONTS.h6, { color: colors.title }]}>Review {sellerName}</Text>
-                                        <Text numberOfLines={2} style={[FONTS.fontXs, { color: colors.text, lineHeight: 17, marginTop: 3 }]}>{listingTitle ? `Share your experience for “${listingTitle}”.` : 'Share an honest experience you had with this seller.'}</Text>
+                                        <Text style={[FONTS.h6, { color: colors.title }]}>Verified purchase review</Text>
+                                        <Text numberOfLines={2} style={[FONTS.fontXs, { color: colors.text, lineHeight: 17, marginTop: 3 }]}>{listingTitle ? `Rate “${listingTitle}” from ${sellerName}.` : `Rate your completed purchase from ${sellerName}.`}</Text>
                                     </View>
                                     <TouchableOpacity disabled={submitting} onPress={() => setFormOpen(false)} style={{ height: 36, width: 36, borderRadius: 18, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="x" size={18} color={colors.text} /></TouchableOpacity>
                                 </View>
 
                                 {Boolean(formError) && <View style={{ borderRadius: 12, backgroundColor: '#FDECEC', padding: 11, marginTop: 14 }}><Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.danger }]}>{formError}</Text></View>}
 
-                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginTop: 18 }]}>Your rating</Text>
-                                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                                    {[1, 2, 3, 4, 5].map((value) => (
-                                        <TouchableOpacity key={value} onPress={() => setRating(value)} style={{ flex: 1, aspectRatio: 1, maxHeight: 52, borderRadius: 13, backgroundColor: rating >= value ? '#F59E0B' : colors.background, alignItems: 'center', justifyContent: 'center' }}>
-                                            <FontAwesomeIcon name="star" size={18} color={rating >= value ? COLORS.white : colors.textLight} />
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                                <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: '#A86500', marginTop: 8 }]}>{ratingLabels[rating]}</Text>
+                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginTop: 18, marginBottom: 2 }]}>Rate your transaction</Text>
+                                <RatingPickerRow label="Overall experience" value={rating} onChange={setRating} colors={colors} />
+                                <RatingPickerRow label="Item matched the ad" value={accuracyRating} onChange={setAccuracyRating} colors={colors} />
+                                <RatingPickerRow label="Item condition" value={conditionRating} onChange={setConditionRating} colors={colors} />
+                                <RatingPickerRow label="Seller communication" value={communicationRating} onChange={setCommunicationRating} colors={colors} />
+                                <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: '#A86500', marginTop: 8 }]}>{ratingLabels[rating]} overall</Text>
 
                                 <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title, marginTop: 18, marginBottom: 7 }]}>Your experience</Text>
                                 <TextInput value={comment} onChangeText={setComment} maxLength={1000} multiline textAlignVertical="top" placeholder="Example: Good seller. The item was as described." placeholderTextColor={colors.textLight} style={[FONTS.font, { minHeight: 115, borderRadius: 13, borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.background, color: colors.title, padding: 13, paddingTop: 12 }]} />

@@ -23,6 +23,7 @@ const linking = {
       ResetPassword: 'reset-password',
       SingleChat: 'messages/:threadId',
       NotificationsCenter: 'notifications',
+      MyReviews: 'my-reviews',
       ListingAnalytics: 'account/analytics/:listingId',
     },
   },
@@ -136,7 +137,10 @@ const Routes = () => {
         backgroundColor={theme.colors.background}
         barStyle={isDarkTheme ? 'light-content' : 'dark-content'}
       />
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <SafeAreaView
+        edges={Platform.OS === 'android' ? [] : ['top']}
+        style={{ flex: 1, backgroundColor: theme.colors.background }}
+      >
         <NavigationContainer theme={theme} linking={linking}>
           <StackNavigator/>
         </NavigationContainer>

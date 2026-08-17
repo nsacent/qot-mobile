@@ -28,6 +28,7 @@ import {
 import { formatRelativeTime } from '../../utils/formatters';
 import Header from '../../layout/Header';
 import useBottomTabContentPadding from '../../utils/useBottomTabContentPadding';
+import { useNotifications } from '../../context/NotificationContext';
 
 const folders = [
     { id: 'all', label: 'All' },
@@ -51,6 +52,7 @@ const Chat = ({ navigation }) => {
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
     const bottomContentPadding = useBottomTabContentPadding(95);
+    const { refreshUnreadMessages } = useNotifications();
     const [folder, setFolder] = useState('all');
     const [search, setSearch] = useState('');
     const [threads, setThreads] = useState([]);
@@ -70,13 +72,14 @@ const Chat = ({ navigation }) => {
             const data = await getChatThreads({ folder, search });
             setThreads(data.threads);
             setCounts(data.tabs);
+            refreshUnreadMessages().catch(() => {});
         } catch (requestError) {
             setError(requestError.message);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [folder, search]);
+    }, [folder, refreshUnreadMessages, search]);
 
     useFocusEffect(useCallback(() => {
         const timer = setTimeout(() => loadThreads(), 250);

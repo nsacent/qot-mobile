@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
+    Image,
     RefreshControl,
     SafeAreaView,
     ScrollView,
@@ -14,12 +15,13 @@ import FeatherIcon from 'react-native-vector-icons/Feather';
 import Header from '../../layout/Header';
 import ReviewStars from '../../components/ReviewStars';
 import { COLORS, FONTS } from '../../constants/theme';
-import { getMyReviews } from '../../api/account';
+import { getEligibleTransactionReviews, getMyReviews } from '../../api/account';
 import { formatDate } from '../../utils/formatters';
 
 const MyReviews = ({ navigation }) => {
     const { colors } = useTheme();
     const [reviews, setReviews] = useState([]);
+    const [eligibleTransactions, setEligibleTransactions] = useState([]);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -29,7 +31,12 @@ const MyReviews = ({ navigation }) => {
         refresh ? setRefreshing(true) : setLoading(true);
         setError('');
         try {
-            setReviews(await getMyReviews());
+            const [reviewRows, eligibleRows] = await Promise.all([
+                getMyReviews({ force: refresh }),
+                getEligibleTransactionReviews({ force: refresh }),
+            ]);
+            setReviews(reviewRows);
+            setEligibleTransactions(eligibleRows);
         } catch (requestError) {
             setError(requestError.message || 'Your reviews could not be loaded.');
         } finally {
@@ -84,6 +91,41 @@ const MyReviews = ({ navigation }) => {
                                 <TouchableOpacity onPress={() => loadReviews()} style={{ borderRadius: 13, backgroundColor: '#FDECEC', padding: 12, marginTop: 11 }}><Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.danger }]}>{error} Tap to retry.</Text></TouchableOpacity>
                             )}
 
+                            {eligibleTransactions.length > 0 && (
+                                <View style={{ borderRadius: 18, borderWidth: 1, borderColor: '#BEE6D0', backgroundColor: '#F0FBF5', padding: 12, marginTop: 12 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                                        <View style={{ height: 35, width: 35, borderRadius: 11, backgroundColor: '#18864B', alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="shield" size={16} color={COLORS.white} /></View>
+                                        <View style={{ flex: 1, marginLeft: 9 }}>
+                                            <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>Purchases ready to review</Text>
+                                            <Text style={[FONTS.fontXs, { color: '#176B44', marginTop: 2 }]}>Accepted offers completed on QOT</Text>
+                                        </View>
+                                    </View>
+                                    {eligibleTransactions.map((transaction) => (
+                                        <TouchableOpacity
+                                            key={transaction.listing}
+                                            onPress={() => navigation.navigate('SellerReviews', {
+                                                sellerId: transaction.seller,
+                                                sellerName: transaction.seller_name,
+                                                listingId: transaction.listing,
+                                                listingTitle: transaction.listing_title,
+                                            })}
+                                            style={{ minHeight: 62, borderRadius: 13, backgroundColor: colors.card, padding: 7, marginTop: 7, flexDirection: 'row', alignItems: 'center' }}
+                                        >
+                                            {transaction.listing_image ? (
+                                                <Image source={{ uri: transaction.listing_image }} style={{ height: 48, width: 62, borderRadius: 9, backgroundColor: colors.background }} />
+                                            ) : (
+                                                <View style={{ height: 48, width: 62, borderRadius: 9, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}><FeatherIcon name="image" size={17} color={colors.textLight} /></View>
+                                            )}
+                                            <View style={{ flex: 1, minWidth: 0, marginLeft: 9 }}>
+                                                <Text numberOfLines={1} style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title }]}>{transaction.listing_title}</Text>
+                                                <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, marginTop: 3 }]}>Bought from {transaction.seller_name || 'QOT seller'}</Text>
+                                            </View>
+                                            <View style={{ borderRadius: 9, backgroundColor: COLORS.primary, paddingHorizontal: 9, paddingVertical: 7 }}><Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.white }]}>Review</Text></View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+
                             {reviews.length > 0 && (
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -15, marginTop: 13 }} contentContainerStyle={{ paddingHorizontal: 15 }}>
                                     {[['all', 'All'], ['5', '5 stars'], ['4', '4 stars'], ['3', '3 stars'], ['2', '2 stars'], ['1', '1 star']].map(([key, label]) => {
@@ -117,7 +159,14 @@ const MyReviews = ({ navigation }) => {
                                     <Text numberOfLines={1} style={[FONTS.font, FONTS.fontTitle, { color: colors.title, marginTop: 8 }]}>{item.listing_title || 'Reviewed seller'}</Text>
                                     <Text numberOfLines={1} style={[FONTS.fontXs, { color: colors.text, marginTop: 3 }]}>Seller: {item.seller_name || 'QOT seller'} · {formatDate(item.created_at)}</Text>
                                 </View>
-                                <View style={{ borderRadius: 9, backgroundColor: item.is_visible ? '#EAF8F0' : '#FFF3DC', paddingHorizontal: 8, paddingVertical: 5 }}><Text style={[FONTS.fontXs, FONTS.fontTitle, { color: item.is_visible ? '#176B44' : '#9A5B00', fontSize: 8 }]}>{item.is_visible ? 'Published' : 'Under review'}</Text></View>
+                                <View style={{ borderRadius: 9, backgroundColor: '#EAF8F0', paddingHorizontal: 8, paddingVertical: 5, flexDirection: 'row', alignItems: 'center' }}><FeatherIcon name="shield" size={10} color="#176B44" /><Text style={[FONTS.fontXs, FONTS.fontTitle, { color: '#176B44', fontSize: 8, marginLeft: 4 }]}>Verified purchase</Text></View>
+                            </View>
+                            <View style={{ flexDirection: 'row', gap: 6, marginTop: 10 }}>
+                                {[
+                                    ['Accuracy', item.item_accuracy_rating],
+                                    ['Condition', item.item_condition_rating],
+                                    ['Chat', item.communication_rating],
+                                ].map(([label, value]) => <View key={label} style={{ flex: 1, borderRadius: 9, backgroundColor: colors.background, padding: 7, alignItems: 'center' }}><Text style={[FONTS.fontXs, { color: colors.textLight, fontSize: 8 }]}>{label}</Text><Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title, marginTop: 2 }]}>{value || item.rating}/5</Text></View>)}
                             </View>
                             <Text style={[FONTS.fontSm, { color: colors.title, lineHeight: 21, marginTop: 11 }]}>{item.comment || 'No written comment was added.'}</Text>
                             <View style={{ flexDirection: 'row', gap: 8, marginTop: 13 }}>

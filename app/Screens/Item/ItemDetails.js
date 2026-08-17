@@ -514,7 +514,7 @@ const ItemDetails = ({ route, navigation }) => {
                                         style={{ flex: 1, height: 43, borderRadius: 10, borderWidth: 1, borderColor: '#E89A00', backgroundColor: '#FFF8E8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
                                     >
                                         <FeatherIcon name="star" size={15} color="#B56700" />
-                                        <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: '#8A5400', marginLeft: 6 }]}>Review seller</Text>
+                                        <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: '#8A5400', marginLeft: 6 }]}>Seller reviews</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}

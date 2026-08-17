@@ -97,7 +97,9 @@ const NotificationsCenter = ({ navigation }) => {
             }
         }
 
-        if (item.chat_thread) {
+        if (item.action_url === '/account/my-reviews') {
+            navigation.navigate('MyReviews');
+        } else if (item.chat_thread) {
             navigation.navigate('SingleChat', { threadId: item.chat_thread });
         } else if (item.listing) {
             navigation.navigate('ItemDetails', { listingId: item.listing });

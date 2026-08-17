@@ -44,6 +44,7 @@ import {
     updateChatState,
 } from '../../api/chats';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { formatMessageTime, formatPrice, formatRelativeTime } from '../../utils/formatters';
 
 const linkPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|(?:\+?256|0)7\d{8})/gi;
@@ -164,6 +165,7 @@ const SingleChat = ({ route, navigation }) => {
         : Math.max(insets.bottom, 8);
     const keyboardVisible = useKeyboardState((state) => state.isVisible);
     const { user } = useAuth();
+    const { refreshUnreadMessages } = useNotifications();
     const threadId = route.params?.threadId || route.params?.thread?.id;
     const [thread, setThread] = useState(route.params?.thread || null);
     const [messages, setMessages] = useState([]);
@@ -214,12 +216,13 @@ const SingleChat = ({ route, navigation }) => {
             }
             setMessages(messageData);
             await markChatRead(threadId).catch(() => {});
+            refreshUnreadMessages().catch(() => {});
         } catch (requestError) {
             setError(requestError.message);
         } finally {
             setLoading(false);
         }
-    }, [threadId]);
+    }, [refreshUnreadMessages, threadId]);
 
     useEffect(() => {
         loadChat();
@@ -252,7 +255,9 @@ const SingleChat = ({ route, navigation }) => {
                     if (event.type === 'chat_message') {
                         setMessages((current) => addOrReplaceMessage(current, event.message));
                         if (String(event.message?.sender) !== String(user?.id)) {
-                            markChatRead(threadId).catch(() => {});
+                            markChatRead(threadId)
+                                .then(() => refreshUnreadMessages())
+                                .catch(() => {});
                         }
                     }
                     if (event.type === 'message_deleted' && event.message_id) {
@@ -286,7 +291,7 @@ const SingleChat = ({ route, navigation }) => {
             socketRef.current?.close();
             socketRef.current = null;
         };
-    }, [threadId, thread?.other_user_id, user?.id]);
+    }, [refreshUnreadMessages, threadId, thread?.other_user_id, user?.id]);
 
     useEffect(() => {
         if (!messages.length) return;

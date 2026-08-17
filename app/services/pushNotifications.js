@@ -76,7 +76,13 @@ const performPushRegistration = async (userId) => {
     const existing = await Notifications.getPermissionsAsync();
     let permissionStatus = existing.status;
     if (permissionStatus !== 'granted') {
-        const requested = await Notifications.requestPermissionsAsync();
+        const requested = await Notifications.requestPermissionsAsync({
+            ios: {
+                allowAlert: true,
+                allowBadge: true,
+                allowSound: true,
+            },
+        });
         permissionStatus = requested.status;
     }
     if (permissionStatus !== 'granted') return { status: 'permission_denied' };

@@ -23,11 +23,12 @@ const queryString = (params = {}) => {
     return query ? `?${query}` : '';
 };
 
-export const getChatThreads = async ({ folder = 'all', search = '' } = {}) => {
+export const getChatThreads = async ({ folder = 'all', search = '', force = false } = {}) => {
     return cachedQuery({
         key: ['chat', 'threads', sessionScope(), folder, search.trim()],
         staleTime: CACHE_TIMES.chat,
         scope: 'session',
+        force,
         queryFn: async () => {
             const data = await apiRequest(`/chats/threads/${queryString({
                 filter: folder,

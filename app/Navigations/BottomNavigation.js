@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import React from 'react';
+import { Platform, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,9 +8,9 @@ import HomeScreen from '../Screens/Home/Home';
 import Chat from '../Screens/chat/Chat';
 import Profile from '../Screens/profile/Profile';
 import Saved from '../Screens/saved/Saved';
-import { getChatThreads } from '../api/chats';
 import { COLORS, FONTS } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,33 +19,11 @@ const CreateAd2 = () => { }
 const BottomNavigation = () => {
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
-    const [unreadMessages, setUnreadMessages] = useState(0);
+    // The Android system navigation bar already owns its space in relative
+    // mode. Some older OEM builds report that space again as a safe-area inset.
+    const tabBarBottomInset = Platform.OS === 'android' ? 4 : Math.max(insets.bottom, 4);
     const { isAuthenticated } = useAuth();
-
-    useEffect(() => {
-        let active = true;
-
-        if (!isAuthenticated) {
-            setUnreadMessages(0);
-            return () => { active = false; };
-        }
-
-        const refreshUnread = () => {
-            getChatThreads({ folder: 'unread' })
-                .then((data) => {
-                    if (active) setUnreadMessages(Number(data.tabs?.unread || 0));
-                })
-                .catch(() => {});
-        };
-
-        refreshUnread();
-        const timer = setInterval(refreshUnread, 30000);
-
-        return () => {
-            active = false;
-            clearInterval(timer);
-        };
-    }, [isAuthenticated]);
+    const { unreadMessageCount } = useNotifications();
 
     const protectedTabListeners = ({ navigation }) => ({
         tabPress: (event) => {
@@ -85,9 +63,9 @@ const BottomNavigation = () => {
                 ),
                 tabBarStyle: {
                     position: 'relative',
-                    height: 58 + Math.max(insets.bottom, 4),
+                    height: 58 + tabBarBottomInset,
                     paddingTop: 5,
-                    paddingBottom: Math.max(insets.bottom, 4),
+                    paddingBottom: tabBarBottomInset,
                     backgroundColor: colors.card,
                     borderTopWidth: 0,
                     elevation: 14,
@@ -104,7 +82,7 @@ const BottomNavigation = () => {
                 name="Messages"
                 component={Chat}
                 options={{
-                    tabBarBadge: unreadMessages > 0 ? (unreadMessages > 99 ? '99+' : unreadMessages) : undefined,
+                    tabBarBadge: unreadMessageCount > 0 ? (unreadMessageCount > 99 ? '99+' : unreadMessageCount) : undefined,
                     tabBarBadgeStyle: {
                         minWidth: 17,
                         height: 17,
