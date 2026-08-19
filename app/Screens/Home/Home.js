@@ -3,7 +3,6 @@ import {
     ActivityIndicator,
     Image,
     RefreshControl,
-    SafeAreaView,
     ScrollView,
     Text,
     TouchableOpacity,
@@ -180,7 +179,7 @@ const HomeScreen = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.card }}>
+        <View style={{ flex: 1, backgroundColor: colors.card }}>
             <View style={[GlobalStyleSheet.container, { paddingBottom: 5, backgroundColor: colors.card }] }>
                 <View style={{ flexDirection: 'row' }}>
                     <View style={{ flex: 1 }}>
@@ -363,7 +362,7 @@ const HomeScreen = ({ navigation }) => {
                     </View>
                 </ScrollView>
             )}
-        </SafeAreaView>
+        </View>
     );
 };
 

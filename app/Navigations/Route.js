@@ -95,6 +95,11 @@ const Routes = () => {
 
   useEffect(() => {
     const backgroundColor = theme.colors.background;
+    // Keep Android's system bars visually connected to the app chrome. In
+    // relative mode Android still owns the physical status/navigation space,
+    // so matching the adjacent header/tab bar prevents it looking like an
+    // extra empty band on devices that use three-button navigation.
+    const systemBarColor = theme.colors.card;
     const contentStyle = isDarkTheme ? 'light-content' : 'dark-content';
 
     StatusBar.setBarStyle(contentStyle, true);
@@ -106,15 +111,15 @@ const Routes = () => {
     const applyAndroidSystemBars = async () => {
       try {
         StatusBar.setTranslucent(false);
-        StatusBar.setBackgroundColor(backgroundColor, true);
+        StatusBar.setBackgroundColor(systemBarColor, true);
         await Promise.allSettled([
           SystemUI.setBackgroundColorAsync(backgroundColor),
           NavigationBar.setPositionAsync('relative'),
         ]);
         if (!active) return;
         await Promise.allSettled([
-          NavigationBar.setBackgroundColorAsync(backgroundColor),
-          NavigationBar.setBorderColorAsync(backgroundColor),
+          NavigationBar.setBackgroundColorAsync(systemBarColor),
+          NavigationBar.setBorderColorAsync(systemBarColor),
           NavigationBar.setButtonStyleAsync(isDarkTheme ? 'light' : 'dark'),
           NavigationBar.setVisibilityAsync('visible'),
         ]);
@@ -128,13 +133,13 @@ const Routes = () => {
     return () => {
       active = false;
     };
-  }, [isDarkTheme, theme.colors.background]);
+  }, [isDarkTheme, theme.colors.background, theme.colors.card]);
 
   return (
     <themeContext.Provider value={authContext}>
       <StatusBar
         translucent={false}
-        backgroundColor={theme.colors.background}
+        backgroundColor={theme.colors.card}
         barStyle={isDarkTheme ? 'light-content' : 'dark-content'}
       />
       <SafeAreaView

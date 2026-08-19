@@ -25,7 +25,7 @@
       }
     },
     "android": {
-      "versionCode": 17,
+      "versionCode": 18,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon-qot.png",
@@ -67,12 +67,13 @@
     },
     "androidStatusBar": {
       "translucent": false,
-      "backgroundColor": "#FFF7F2",
+      "backgroundColor": "#FFFFFF",
       "barStyle": "dark-content"
     },
     "androidNavigationBar": {
-      "backgroundColor": "#FFF7F2",
-      "barStyle": "dark-content"
+      "backgroundColor": "#FFFFFF",
+      "barStyle": "dark-content",
+      "enforceContrast": false
     },
     "extra": {
       "googleWebClientId": "469848009032-cp7lad868jnfbjcn4qjgifumnqvm99m7.apps.googleusercontent.com",

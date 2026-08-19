@@ -3,7 +3,10 @@ import { COLORS, FONTS, SIZES } from "./theme";
 export const GlobalStyleSheet = {
     container : {
         paddingHorizontal: 15,
-        paddingVertical: 15,
+        // Screen content should sit close to the shared app header. Individual
+        // sections can opt into more space, but every route now starts from the
+        // same compact gutter instead of adding a large top band.
+        paddingVertical: 8,
         maxWidth: SIZES.container,
         width: '100%',
         marginLeft: 'auto',
