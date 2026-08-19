@@ -88,7 +88,7 @@ export const FONTS = {
 
 export const IMAGES = {
 
-	user: require('../assets/images/user.png'),
+	user: require('../assets/images/default-avatar.png'),
 	logo: require('../assets/images/logo.png'),
 	logowhite: require('../assets/images/logo-white.png'),
 	qotLogo: require('../assets/images/qot-logo.png'),

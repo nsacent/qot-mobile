@@ -113,7 +113,7 @@ const Sidebar = ({ navigation }) => {
                                             borderRadius: 65,
                                             marginBottom: 10,
                                         }}
-                                        source={isAuthenticated && user?.profile?.avatar ? { uri: user.profile.avatar } : isAuthenticated ? IMAGES.Small5 : IMAGES.qotLogo}
+                                        source={isAuthenticated && user?.profile?.avatar ? { uri: user.profile.avatar } : isAuthenticated ? IMAGES.user : IMAGES.qotLogo}
                                         resizeMode={isAuthenticated ? 'cover' : 'contain'}
                                     />
                                     {isAuthenticated && <TouchableOpacity
