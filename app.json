@@ -12,6 +12,7 @@
     "ios": {
       "supportsTablet": false,
       "usesAppleSignIn": true,
+      "appleTeamId": "QBH63MW63U",
       "bundleIdentifier": "ug.qot.mobile",
       "buildNumber": "19",
       "associatedDomains": [
@@ -104,6 +105,7 @@
       ],
       "expo-secure-store",
       "expo-apple-authentication",
+      "@bacons/apple-targets",
       "expo-asset",
       "expo-font",
       [
