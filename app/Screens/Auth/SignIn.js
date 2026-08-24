@@ -13,6 +13,7 @@ import {
 import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
+import AppleSignInButton from '../../components/AppleSignInButton';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
 import UgandanPhoneInput from '../../components/UgandanPhoneInput';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
@@ -231,6 +232,7 @@ const SignIn = ({ navigation }) => {
                     )}
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 18 }}><View style={{ flex: 1, height: 1, backgroundColor: colors.border }} /><Text style={[FONTS.fontSm, { color: colors.text, marginHorizontal: 12 }]}>or continue with</Text><View style={{ flex: 1, height: 1, backgroundColor: colors.border }} /></View>
+                    <AppleSignInButton navigation={navigation} />
                     <GoogleSignInButton navigation={navigation} />
 
                     <View style={{ backgroundColor: colors.card, borderRadius: 11, padding: 11, flexDirection: 'row', alignItems: 'center', marginTop: 15 }}>

@@ -59,6 +59,18 @@ export const loginWithGoogle = async ({ credential }) => (
     })
 );
 
+export const loginWithApple = async ({ credential, fullName }) => (
+    apiRequest('/auth/apple/', {
+        method: 'POST',
+        body: {
+            credential,
+            full_name: String(fullName || '').trim(),
+            keep_signed_in: true,
+            device: await getDeviceMetadata(),
+        },
+    })
+);
+
 export const getCurrentUser = () => (
     apiRequest('/auth/me/', { authenticated: true })
 );
@@ -76,6 +88,14 @@ export const freezeAccount = () => (
         method: 'POST',
         authenticated: true,
         body: { confirmation: true },
+    })
+);
+
+export const deleteAccount = () => (
+    apiRequest('/auth/account/', {
+        method: 'DELETE',
+        authenticated: true,
+        body: { confirmation: 'DELETE' },
     })
 );
 

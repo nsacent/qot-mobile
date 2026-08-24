@@ -96,6 +96,17 @@ export const AuthProvider = ({ children }) => {
         return result.user;
     }, []);
 
+    const signInWithApple = useCallback(async (credential, fullName = '') => {
+        const result = await authApi.loginWithApple({
+            credential,
+            fullName,
+        });
+        clearSessionCache();
+        await saveSession({ user: result.user, tokens: result.tokens });
+        setUser(result.user);
+        return result.user;
+    }, []);
+
     const signOut = useCallback(async () => {
         const userId = getSession()?.user?.id;
         const refresh = getSession()?.tokens?.refresh;
@@ -114,6 +125,17 @@ export const AuthProvider = ({ children }) => {
     const freezeAccount = useCallback(async () => {
         const userId = getSession()?.user?.id;
         const result = await authApi.freezeAccount();
+        await clearSession();
+        clearSessionCache();
+        await clearPrivateDeviceCache(userId).catch(() => {});
+        setUser(null);
+        return result;
+    }, []);
+
+    const deleteAccount = useCallback(async () => {
+        const userId = getSession()?.user?.id;
+        await unregisterPushNotifications().catch(() => {});
+        const result = await authApi.deleteAccount();
         await clearSession();
         clearSessionCache();
         await clearPrivateDeviceCache(userId).catch(() => {});
@@ -145,8 +167,10 @@ export const AuthProvider = ({ children }) => {
         signInWithPhoneOTP,
         signUp,
         signInWithGoogle,
+        signInWithApple,
         signOut,
         freezeAccount,
+        deleteAccount,
         refreshUser,
         updateCurrentUser,
     }), [
@@ -157,8 +181,10 @@ export const AuthProvider = ({ children }) => {
         signInWithPhoneOTP,
         signUp,
         signInWithGoogle,
+        signInWithApple,
         signOut,
         freezeAccount,
+        deleteAccount,
         refreshUser,
         updateCurrentUser,
     ]);

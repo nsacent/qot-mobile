@@ -4,15 +4,16 @@
     "slug": "qot-mobile",
     "owner": "nsacent",
     "scheme": "qot",
-    "version": "1.0.12",
+    "version": "1.0.13",
     "orientation": "portrait",
     "icon": "./assets/icon-qot.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "ug.qot.mobile",
-      "buildNumber": "18",
+      "buildNumber": "19",
       "associatedDomains": [
         "applinks:qot.ug"
       ],
@@ -25,7 +26,7 @@
       }
     },
     "android": {
-      "versionCode": 18,
+      "versionCode": 19,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon-qot.png",
@@ -102,6 +103,7 @@
         }
       ],
       "expo-secure-store",
+      "expo-apple-authentication",
       "expo-asset",
       "expo-font",
       [

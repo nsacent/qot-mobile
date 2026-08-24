@@ -9,6 +9,7 @@ import {
     SafeAreaView,
     ScrollView,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -69,10 +70,14 @@ const SettingRow = ({ icon, title, detail, badge, danger, onPress, first = false
 
 const Setting = ({ navigation }) => {
     const { colors } = useTheme();
-    const { user, signOut, freezeAccount } = useAuth();
+    const { user, signOut, freezeAccount, deleteAccount } = useAuth();
     const [freezeOpen, setFreezeOpen] = useState(false);
     const [freezing, setFreezing] = useState(false);
     const [freezeError, setFreezeError] = useState('');
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState('');
+    const [deleteError, setDeleteError] = useState('');
     const phoneVerified = Boolean(user?.phone_verified || user?.phone_verified_at);
     const emailVerified = Boolean(user?.email_verified || user?.email_verified_at);
     const location = user?.profile?.default_area_name || user?.profile?.default_city_name
@@ -136,6 +141,26 @@ const Setting = ({ navigation }) => {
             setFreezeError(requestError.message || 'Your account could not be frozen. Please try again.');
         } finally {
             setFreezing(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmation.trim().toUpperCase() !== 'DELETE') {
+            setDeleteError('Enter DELETE to confirm permanent account deletion.');
+            return;
+        }
+
+        setDeleting(true);
+        setDeleteError('');
+
+        try {
+            await deleteAccount();
+            setDeleteOpen(false);
+            navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+        } catch (requestError) {
+            setDeleteError(requestError.message || 'Your account could not be deleted. Please try again.');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -252,6 +277,17 @@ const Setting = ({ navigation }) => {
                                 setFreezeOpen(true);
                             }}
                         />
+                        <SettingRow
+                            icon="trash-2"
+                            title="Delete account"
+                            detail="Permanently delete your account and associated data"
+                            danger
+                            onPress={() => {
+                                setDeleteConfirmation('');
+                                setDeleteError('');
+                                setDeleteOpen(true);
+                            }}
+                        />
                     </View>
 
                     <TouchableOpacity onPress={confirmSignOut} style={{ minHeight: 50, borderRadius: 13, borderWidth: 1, borderColor: '#F3B4B4', backgroundColor: '#FFF7F7', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 24 }}>
@@ -286,6 +322,50 @@ const Setting = ({ navigation }) => {
                             <TouchableOpacity disabled={freezing} onPress={handleFreezeAccount} style={{ flex: 1, height: 48, borderRadius: 12, backgroundColor: '#B42318', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', opacity: freezing ? 0.7 : 1 }}>
                                 {freezing && <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 7 }} />}
                                 <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.white }]}>Freeze account</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
+
+            <Modal transparent visible={deleteOpen} animationType="fade" statusBarTranslucent onRequestClose={() => !deleting && setDeleteOpen(false)}>
+                <Pressable onPress={() => !deleting && setDeleteOpen(false)} style={{ flex: 1, padding: 20, backgroundColor: 'rgba(15,23,42,.72)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 410, borderRadius: 22, backgroundColor: colors.card, padding: 19 }}>
+                        <View style={{ height: 54, width: 54, borderRadius: 18, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center' }}>
+                            <FeatherIcon name="trash-2" size={24} color="#B42318" />
+                        </View>
+                        <Text style={[FONTS.h5, { color: colors.title, marginTop: 15 }]}>Permanently delete your account?</Text>
+                        <Text style={[FONTS.fontSm, { color: colors.text, lineHeight: 21, marginTop: 7 }]}>Your profile, ads, drafts, saved items, messages and account data will be removed. This cannot be undone.</Text>
+                        <View style={{ borderRadius: 12, backgroundColor: '#FFF0F0', padding: 11, marginTop: 13, flexDirection: 'row' }}>
+                            <FeatherIcon name="alert-triangle" size={16} color="#B42318" style={{ marginTop: 1 }} />
+                            <Text style={[FONTS.fontXs, { color: '#9B2C2C', lineHeight: 18, flex: 1, marginLeft: 8 }]}>If you only need a break, cancel and use Freeze account instead.</Text>
+                        </View>
+                        <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: colors.title, marginTop: 14, marginBottom: 7 }]}>Enter DELETE to confirm</Text>
+                        <TextInput
+                            value={deleteConfirmation}
+                            onChangeText={(value) => {
+                                setDeleteConfirmation(value);
+                                setDeleteError('');
+                            }}
+                            editable={!deleting}
+                            autoCapitalize="characters"
+                            autoCorrect={false}
+                            placeholder="DELETE"
+                            placeholderTextColor={colors.textLight}
+                            style={[FONTS.font, { height: 48, borderRadius: 12, borderWidth: 1, borderColor: deleteError ? '#E25555' : colors.borderColor, backgroundColor: colors.input, color: colors.title, paddingHorizontal: 14 }]}
+                        />
+                        {Boolean(deleteError) && (
+                            <View style={{ borderRadius: 11, backgroundColor: '#FDECEC', padding: 10, marginTop: 10 }}>
+                                <Text style={[FONTS.fontXs, FONTS.fontTitle, { color: COLORS.danger }]}>{deleteError}</Text>
+                            </View>
+                        )}
+                        <View style={{ flexDirection: 'row', gap: 9, marginTop: 18 }}>
+                            <TouchableOpacity disabled={deleting} onPress={() => setDeleteOpen(false)} style={{ flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: colors.borderColor, alignItems: 'center', justifyContent: 'center' }}>
+                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: colors.title }]}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity disabled={deleting || deleteConfirmation.trim().toUpperCase() !== 'DELETE'} onPress={handleDeleteAccount} style={{ flex: 1, height: 48, borderRadius: 12, backgroundColor: '#B42318', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', opacity: deleting || deleteConfirmation.trim().toUpperCase() !== 'DELETE' ? 0.5 : 1 }}>
+                                {deleting && <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 7 }} />}
+                                <Text style={[FONTS.fontSm, FONTS.fontTitle, { color: COLORS.white }]}>Delete forever</Text>
                             </TouchableOpacity>
                         </View>
                     </Pressable>

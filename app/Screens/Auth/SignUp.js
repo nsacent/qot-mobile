@@ -14,6 +14,7 @@ import { Checkbox } from 'react-native-paper';
 import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
+import AppleSignInButton from '../../components/AppleSignInButton';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
 import UgandanPhoneInput from '../../components/UgandanPhoneInput';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
@@ -220,9 +221,10 @@ const SignUp = ({ navigation }) => {
                         <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
                     </View>
 
+                    <AppleSignInButton navigation={navigation} mode="sign-up" />
                     <GoogleSignInButton navigation={navigation} mode="sign-up" />
                     <Text style={[FONTS.fontXs, { color: colors.text, textAlign: 'center', lineHeight: 17, marginTop: 10 }] }>
-                        By continuing with Google, you agree to QOT's Terms and Privacy Policy.
+                        By continuing with Apple or Google, you agree to QOT's Terms and Privacy Policy.
                     </Text>
 
                     <View style={{ flexDirection: 'row', marginTop: 18, marginBottom: 24, justifyContent: 'center' }}>
