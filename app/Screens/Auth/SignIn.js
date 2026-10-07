@@ -15,6 +15,7 @@ import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
 import AppleSignInButton from '../../components/AppleSignInButton';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
+import TermsAcceptance from '../../components/TermsAcceptance';
 import UgandanPhoneInput from '../../components/UgandanPhoneInput';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
@@ -37,6 +38,7 @@ const SignIn = ({ navigation }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
 
     useEffect(() => {
         if (cooldown <= 0) return undefined;
@@ -55,7 +57,14 @@ const SignIn = ({ navigation }) => {
         return false;
     };
 
+    const validateTerms = () => {
+        if (acceptedTerms) return true;
+        setError('Accept the Terms of Service and Privacy Policy to continue.');
+        return false;
+    };
+
     const sendCode = async () => {
+        if (!validateTerms()) return;
         if (!validatePhone()) return;
         setError('');
         setMessage('');
@@ -74,6 +83,7 @@ const SignIn = ({ navigation }) => {
     };
 
     const verifyCode = async () => {
+        if (!validateTerms()) return;
         if (!validatePhone()) return;
         if (!/^\d{6}$/.test(code)) {
             setError('Enter the complete 6-digit code sent to your phone.');
@@ -92,6 +102,7 @@ const SignIn = ({ navigation }) => {
     };
 
     const handlePasswordSignIn = async () => {
+        if (!validateTerms()) return;
         if (!password) {
             setError('Enter your password.');
             return;
@@ -158,6 +169,15 @@ const SignIn = ({ navigation }) => {
 
                     {Boolean(error) && <View style={{ backgroundColor: '#FDECEC', borderRadius: 10, padding: 12, marginBottom: 15 }}><Text style={{ ...FONTS.fontSm, color: COLORS.danger }}>{error}</Text></View>}
                     {Boolean(message) && <View style={{ backgroundColor: '#EAF8F0', borderRadius: 10, padding: 12, marginBottom: 15 }}><Text style={{ ...FONTS.fontSm, color: '#176B44' }}>{message}</Text></View>}
+
+                    <TermsAcceptance
+                        accepted={acceptedTerms}
+                        colors={colors}
+                        onToggle={() => {
+                            setAcceptedTerms((value) => !value);
+                            setError('');
+                        }}
+                    />
 
                     {mode === 'otp' ? (
                         <>
@@ -232,8 +252,8 @@ const SignIn = ({ navigation }) => {
                     )}
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 18 }}><View style={{ flex: 1, height: 1, backgroundColor: colors.border }} /><Text style={[FONTS.fontSm, { color: colors.text, marginHorizontal: 12 }]}>or continue with</Text><View style={{ flex: 1, height: 1, backgroundColor: colors.border }} /></View>
-                    <AppleSignInButton navigation={navigation} />
-                    <GoogleSignInButton navigation={navigation} />
+                    <AppleSignInButton navigation={navigation} onBeforePress={validateTerms} />
+                    <GoogleSignInButton navigation={navigation} onBeforePress={validateTerms} />
 
                     <View style={{ backgroundColor: colors.card, borderRadius: 11, padding: 11, flexDirection: 'row', alignItems: 'center', marginTop: 15 }}>
                         <FeatherIcon name="shield" size={16} color={COLORS.primary} />

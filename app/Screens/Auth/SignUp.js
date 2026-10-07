@@ -10,12 +10,12 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { Checkbox } from 'react-native-paper';
 import { useTheme } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import CustomButton from '../../components/CustomButton';
 import AppleSignInButton from '../../components/AppleSignInButton';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
+import TermsAcceptance from '../../components/TermsAcceptance';
 import UgandanPhoneInput from '../../components/UgandanPhoneInput';
 import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
@@ -40,6 +40,12 @@ const SignUp = ({ navigation }) => {
 
     const setField = (field) => (value) => {
         setForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const validateTerms = () => {
+        if (acceptedTerms) return true;
+        setError('Accept the Terms of Service and Privacy Policy to continue.');
+        return false;
     };
 
     const handleSignUp = async () => {
@@ -197,15 +203,13 @@ const SignUp = ({ navigation }) => {
                         </View>
                     ))}
 
-                    <Checkbox.Item
-                        onPress={() => setAcceptedTerms((value) => !value)}
-                        position="leading"
-                        label="I agree to the Terms and Privacy Policy"
-                        color={COLORS.primary}
-                        uncheckedColor={colors.textLight}
-                        status={acceptedTerms ? 'checked' : 'unchecked'}
-                        style={{ paddingHorizontal: 0, paddingVertical: 5, marginBottom: 12 }}
-                        labelStyle={{ ...FONTS.font, color: colors.title, textAlign: 'left' }}
+                    <TermsAcceptance
+                        accepted={acceptedTerms}
+                        colors={colors}
+                        onToggle={() => {
+                            setAcceptedTerms((value) => !value);
+                            setError('');
+                        }}
                     />
 
                     <CustomButton
@@ -221,11 +225,8 @@ const SignUp = ({ navigation }) => {
                         <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
                     </View>
 
-                    <AppleSignInButton navigation={navigation} mode="sign-up" />
-                    <GoogleSignInButton navigation={navigation} mode="sign-up" />
-                    <Text style={[FONTS.fontXs, { color: colors.text, textAlign: 'center', lineHeight: 17, marginTop: 10 }] }>
-                        By continuing with Apple or Google, you agree to QOT's Terms and Privacy Policy.
-                    </Text>
+                    <AppleSignInButton navigation={navigation} mode="sign-up" onBeforePress={validateTerms} />
+                    <GoogleSignInButton navigation={navigation} mode="sign-up" onBeforePress={validateTerms} />
 
                     <View style={{ flexDirection: 'row', marginTop: 18, marginBottom: 24, justifyContent: 'center' }}>
                         <Text style={{ ...FONTS.font, color: colors.text, marginRight: 5 }}>

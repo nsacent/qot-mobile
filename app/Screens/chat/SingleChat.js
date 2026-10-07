@@ -514,12 +514,13 @@ const SingleChat = ({ route, navigation }) => {
             }
 
             if (confirmation.type === 'block_user') {
-                await blockChatUser(threadId, 'Blocked from the conversation');
+                await blockChatUser(threadId, 'Blocked for abusive or unwanted contact');
                 setBlockedByMe(true);
                 setReplyingTo(null);
                 setBody('');
                 setAttachments([]);
                 setConfirmation(null);
+                navigation.goBack();
                 return;
             }
 
@@ -555,8 +556,8 @@ const SingleChat = ({ route, navigation }) => {
             : confirmation?.type === 'block_user'
                 ? {
                     title: `Block ${thread?.other_user_name || 'this user'}?`,
-                    description: 'You will stop messaging this person in this conversation. You can unblock them later.',
-                    confirmLabel: 'Block user',
+                    description: 'This user will be blocked, reported to QOT for review, and the conversation will be removed from your main inbox immediately. You can unblock them later from Spam.',
+                    confirmLabel: 'Block and report',
                     icon: 'slash',
                     danger: true,
                 }

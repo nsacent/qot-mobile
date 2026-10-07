@@ -17,7 +17,7 @@ const fullNameFromCredential = (credential) => (
         .trim()
 );
 
-const AppleSignInButton = ({ navigation, mode = 'sign-in' }) => {
+const AppleSignInButton = ({ navigation, mode = 'sign-in', onBeforePress }) => {
     const { colors } = useTheme();
     const { signInWithApple } = useAuth();
     const [available, setAvailable] = useState(false);
@@ -39,6 +39,7 @@ const AppleSignInButton = ({ navigation, mode = 'sign-in' }) => {
 
     const handleAppleSignIn = async () => {
         if (loading) return;
+        if (onBeforePress && !onBeforePress()) return;
         setLoading(true);
         setError('');
 

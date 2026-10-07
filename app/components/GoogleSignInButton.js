@@ -47,7 +47,7 @@ const googleSignInErrorMessage = (error) => {
     return 'Google sign-in could not be completed. Please try again.';
 };
 
-const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
+const GoogleSignInButton = ({ navigation, mode = 'sign-in', onBeforePress }) => {
     const { colors } = useTheme();
     const { signInWithGoogle } = useAuth();
     const [loading, setLoading] = useState(false);
@@ -68,6 +68,7 @@ const GoogleSignInButton = ({ navigation, mode = 'sign-in' }) => {
 
     const handleGoogleSignIn = async () => {
         if (loading) return;
+        if (onBeforePress && !onBeforePress()) return;
 
         setLoading(true);
         setError('');
