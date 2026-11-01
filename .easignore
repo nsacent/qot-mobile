@@ -3,6 +3,8 @@ node_modules/
 .expo-export-check/
 .git/
 builds/
+output/
+tmp/
 doc/
 app-store/
 play-store/
