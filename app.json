@@ -4,7 +4,7 @@
     "slug": "qot-mobile",
     "owner": "nsacent",
     "scheme": "qot",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "orientation": "portrait",
     "icon": "./assets/icon-qot.png",
     "userInterfaceStyle": "light",
@@ -14,7 +14,7 @@
       "usesAppleSignIn": true,
       "appleTeamId": "QBH63MW63U",
       "bundleIdentifier": "ug.qot.mobile",
-      "buildNumber": "21",
+      "buildNumber": "22",
       "associatedDomains": [
         "applinks:qot.ug"
       ],

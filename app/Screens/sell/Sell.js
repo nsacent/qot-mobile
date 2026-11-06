@@ -52,6 +52,7 @@ import {
 } from '../../cache/localDraft';
 import { requestCurrentMarketplaceLocation } from '../../utils/nearbyAds';
 import { hasPrimaryVerification } from '../../utils/verification';
+import { preparePhotosForUpload } from '../../utils/photoUpload';
 
 const STEPS = [
     ['grid', 'Category'],
@@ -153,6 +154,7 @@ const Sell = ({ navigation, route }) => {
     const [condition, setCondition] = useState('used');
     const [negotiable, setNegotiable] = useState(false);
     const [images, setImages] = useState([]);
+    const [preparingPhotos, setPreparingPhotos] = useState(false);
     const [removedImageIds, setRemovedImageIds] = useState([]);
     const [previewImage, setPreviewImage] = useState(null);
     const [photoSourceOpen, setPhotoSourceOpen] = useState(false);
@@ -287,7 +289,7 @@ const Sell = ({ navigation, route }) => {
         () => images.filter((image) => image.staged && !image.uploading).map((image) => image.id),
         [images],
     );
-    const uploading = images.some((image) => image.uploading);
+    const uploading = preparingPhotos || images.some((image) => image.uploading);
     const minimumPhotos = Number(selectedCategory?.minimum_photos || 1);
     const maximumPhotos = Number(selectedCategory?.maximum_photos || 8);
 
@@ -424,7 +426,15 @@ const Sell = ({ navigation, route }) => {
             return;
         }
 
-        const invalid = assets.find((asset) => (
+        let preparedAssets;
+        setPreparingPhotos(true);
+        try {
+            preparedAssets = await preparePhotosForUpload(assets);
+        } finally {
+            setPreparingPhotos(false);
+        }
+
+        const invalid = preparedAssets.find((asset) => (
             (asset.fileSize && asset.fileSize > 8 * 1024 * 1024)
             || (asset.width && asset.height && (Math.min(asset.width, asset.height) < 450 || Math.max(asset.width, asset.height) < 600))
         ));
@@ -437,11 +447,11 @@ const Sell = ({ navigation, route }) => {
 
         setError('');
         if (isEditing) {
-            setImages((current) => [...current, ...assets.map((asset) => ({ ...asset, progress: 100 }))].slice(0, maximumPhotos));
+            setImages((current) => [...current, ...preparedAssets.map((asset) => ({ ...asset, progress: 100 }))].slice(0, maximumPhotos));
             return;
         }
 
-        for (const asset of assets) {
+        for (const asset of preparedAssets) {
             const localKey = `${Date.now()}-${Math.random()}-${asset.uri}`;
             const pending = { localKey, uri: asset.uri, name: asset.fileName, uploading: true, progress: 1 };
             setImages((current) => [...current, pending]);
@@ -842,7 +852,7 @@ const Sell = ({ navigation, route }) => {
     const renderPhotoStep = () => (
         <>
             <Text style={[FONTS.h5, { color: colors.title }]}>Add clear photos</Text>
-            <Text style={[FONTS.fontSm, { color: colors.text, marginTop: 5, lineHeight: 20 }]}>{selectedCategory?.name} requires {minimumPhotos}–{maximumPhotos} photos. JPG, PNG or WEBP, up to 8MB each.</Text>
+            <Text style={[FONTS.fontSm, { color: colors.text, marginTop: 5, lineHeight: 20 }]}>{selectedCategory?.name} requires {minimumPhotos}–{maximumPhotos} photos. JPG, HEIC, HEIF, PNG or WEBP, up to 8MB each.</Text>
 
             <TouchableOpacity onPress={() => setPhotoSourceOpen(true)} disabled={uploading || images.length >= maximumPhotos} style={{ minHeight: 105, borderWidth: 1.5, borderStyle: 'dashed', borderColor: COLORS.primary, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginTop: 17, backgroundColor: `${COLORS.primary}08`, opacity: images.length >= maximumPhotos ? 0.5 : 1 }}>
                 <View style={{ height: 43, width: 43, borderRadius: 22, backgroundColor: `${COLORS.primary}14`, alignItems: 'center', justifyContent: 'center' }}>

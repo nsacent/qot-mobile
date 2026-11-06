@@ -46,6 +46,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { formatMessageTime, formatPrice, formatRelativeTime } from '../../utils/formatters';
+import { preparePhotosForUpload } from '../../utils/photoUpload';
 
 const linkPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|(?:\+?256|0)7\d{8})/gi;
 
@@ -173,6 +174,7 @@ const SingleChat = ({ route, navigation }) => {
     const [attachments, setAttachments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const [preparingAttachments, setPreparingAttachments] = useState(false);
     const [error, setError] = useState('');
     const [socketConnected, setSocketConnected] = useState(false);
     const [otherUserTyping, setOtherUserTyping] = useState(false);
@@ -313,42 +315,50 @@ const SingleChat = ({ route, navigation }) => {
     };
 
     const chooseAttachments = async () => {
+        if (preparingAttachments || sending) return;
         setError('');
-        const result = await DocumentPicker.getDocumentAsync({
-            type: [
-                'image/*',
-                'application/pdf',
-                'text/plain',
-                'text/csv',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            ],
-            multiple: true,
-            copyToCacheDirectory: true,
-        });
+        setPreparingAttachments(true);
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: [
+                    'image/*',
+                    'application/pdf',
+                    'text/plain',
+                    'text/csv',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                ],
+                multiple: true,
+                copyToCacheDirectory: true,
+            });
 
-        if (result.canceled) return;
+            if (result.canceled) return;
 
-        const selected = result.assets || [];
-        if (attachments.length + selected.length > 5) {
-            setError('You can attach up to 5 files at a time.');
-            return;
+            if (attachments.length + result.assets.length > 5) {
+                setError('You can attach up to 5 files at a time.');
+                return;
+            }
+
+            const selected = await preparePhotosForUpload(result.assets);
+            const oversized = selected.find((asset) => Number(asset.size || 0) > 10 * 1024 * 1024);
+            if (oversized) {
+                setError(`${oversized.name} is larger than 10 MB.`);
+                return;
+            }
+
+            setAttachments((current) => [...current, ...selected]);
+        } catch (requestError) {
+            setError(requestError.message || 'The attachment could not be opened.');
+        } finally {
+            setPreparingAttachments(false);
         }
-
-        const oversized = selected.find((asset) => Number(asset.size || 0) > 10 * 1024 * 1024);
-        if (oversized) {
-            setError(`${oversized.name} is larger than 10 MB.`);
-            return;
-        }
-
-        setAttachments((current) => [...current, ...selected]);
     };
 
     const submitMessage = async () => {
         const cleanBody = body.trim();
-        if ((!cleanBody && !attachments.length) || sending) return;
+        if ((!cleanBody && !attachments.length) || sending || preparingAttachments) return;
 
         setSending(true);
         setError('');
@@ -821,8 +831,8 @@ const SingleChat = ({ route, navigation }) => {
                     </View>
                 ) : (
                     <View style={{ minHeight: 64, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.borderColor, paddingHorizontal: 10, paddingTop: 8, paddingBottom: keyboardVisible ? 8 : bottomSafeInset, flexDirection: 'row', alignItems: 'flex-end' }}>
-                        <TouchableOpacity disabled={sending || attachments.length >= 5} onPress={chooseAttachments} style={{ height: 45, width: 42, alignItems: 'center', justifyContent: 'center', opacity: sending || attachments.length >= 5 ? 0.4 : 1 }}>
-                            <FeatherIcon name="paperclip" size={21} color={colors.text} />
+                        <TouchableOpacity disabled={sending || preparingAttachments || attachments.length >= 5} onPress={chooseAttachments} style={{ height: 45, width: 42, alignItems: 'center', justifyContent: 'center', opacity: sending || preparingAttachments || attachments.length >= 5 ? 0.4 : 1 }}>
+                            {preparingAttachments ? <ActivityIndicator size="small" color={COLORS.primary} /> : <FeatherIcon name="paperclip" size={21} color={colors.text} />}
                         </TouchableOpacity>
                         {isBuyer && (
                             <TouchableOpacity
@@ -847,7 +857,7 @@ const SingleChat = ({ route, navigation }) => {
                             maxLength={1000}
                             style={[FONTS.font, { flex: 1, minHeight: 45, maxHeight: 110, borderRadius: 17, backgroundColor: colors.background, color: colors.title, paddingHorizontal: 14, paddingTop: 11, paddingBottom: 10 }]}
                         />
-                        <TouchableOpacity disabled={sending || (!body.trim() && !attachments.length)} onPress={submitMessage} style={{ height: 45, width: 45, borderRadius: 16, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginLeft: 7, opacity: sending || (!body.trim() && !attachments.length) ? 0.45 : 1 }}>
+                        <TouchableOpacity disabled={sending || preparingAttachments || (!body.trim() && !attachments.length)} onPress={submitMessage} style={{ height: 45, width: 45, borderRadius: 16, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginLeft: 7, opacity: sending || preparingAttachments || (!body.trim() && !attachments.length) ? 0.45 : 1 }}>
                             {sending ? <ActivityIndicator size="small" color={COLORS.white} /> : <FeatherIcon name="send" size={18} color={COLORS.white} />}
                         </TouchableOpacity>
                     </View>

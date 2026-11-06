@@ -20,6 +20,7 @@ import { GlobalStyleSheet } from '../../constants/StyleSheet';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { getRegions } from '../../api/marketplace';
 import { useAuth } from '../../context/AuthContext';
+import { preparePhotoForUpload } from '../../utils/photoUpload';
 
 const TIMEZONES = [
     { id: 'Africa/Kampala', name: 'Uganda — Kampala (EAT)' },
@@ -72,6 +73,7 @@ const Editprofile = ({ navigation }) => {
     const [timezoneModal, setTimezoneModal] = useState(false);
     const [loadingLocations, setLoadingLocations] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [preparingImage, setPreparingImage] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -145,30 +147,39 @@ const Editprofile = ({ navigation }) => {
     };
 
     const pickImage = async (kind) => {
+        if (preparingImage || saving) return;
         setError('');
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission.granted) {
-            setError('Allow QOT to access your photos before choosing an image.');
-            return;
-        }
+        setPreparingImage(true);
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+                setError('Allow QOT to access your photos before choosing an image.');
+                return;
+            }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: false,
-            quality: 0.85,
-        });
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                quality: 0.85,
+            });
 
-        if (result.canceled) return;
-        const asset = result.assets[0];
-        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-            setError('Profile images must be 5MB or smaller.');
-            return;
+            if (result.canceled) return;
+            const asset = await preparePhotoForUpload(result.assets[0]);
+            if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+                setError('Profile images must be 5MB or smaller.');
+                return;
+            }
+            if (kind === 'avatar') setAvatar(asset);
+            else setCover(asset);
+        } catch (requestError) {
+            setError(requestError.message || 'The photo could not be opened.');
+        } finally {
+            setPreparingImage(false);
         }
-        if (kind === 'avatar') setAvatar(asset);
-        else setCover(asset);
     };
 
     const submit = async () => {
+        if (preparingImage || saving) return;
         const cleanName = fullName.trim();
         const cleanPhone = phone.replace(/\D/g, '');
         if (!cleanName) {
@@ -247,6 +258,7 @@ const Editprofile = ({ navigation }) => {
                                 </View>
                             )}
                             <TouchableOpacity
+                                disabled={preparingImage || saving}
                                 onPress={() => pickImage('cover')}
                                 style={{ position: 'absolute', right: 10, bottom: 10, backgroundColor: 'rgba(18,9,46,.82)', borderRadius: 9, paddingHorizontal: 11, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}
                             >
@@ -262,6 +274,7 @@ const Editprofile = ({ navigation }) => {
                                     style={{ height: 84, width: 84, borderRadius: 42, backgroundColor: '#F1F2F5' }}
                                 />
                                 <TouchableOpacity
+                                    disabled={preparingImage || saving}
                                     onPress={() => pickImage('avatar')}
                                     style={{ position: 'absolute', right: 0, bottom: 2, height: 31, width: 31, borderRadius: 16, backgroundColor: COLORS.primary, borderWidth: 2, borderColor: colors.background, alignItems: 'center', justifyContent: 'center' }}
                                 >
@@ -354,12 +367,12 @@ const Editprofile = ({ navigation }) => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            disabled={saving}
+                            disabled={saving || preparingImage}
                             onPress={submit}
                             style={{ height: 52, backgroundColor: saving ? '#FDBA74' : COLORS.primary, borderRadius: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
                         >
-                            {saving && <ActivityIndicator color={COLORS.white} style={{ marginRight: 9 }} />}
-                            <Text style={[FONTS.fontLg, FONTS.fontTitle, { color: COLORS.white }]}>{saving ? 'Saving changes...' : 'Save changes'}</Text>
+                            {(saving || preparingImage) && <ActivityIndicator color={COLORS.white} style={{ marginRight: 9 }} />}
+                            <Text style={[FONTS.fontLg, FONTS.fontTitle, { color: COLORS.white }]}>{preparingImage ? 'Preparing photo...' : saving ? 'Saving changes...' : 'Save changes'}</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
